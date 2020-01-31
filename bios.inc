@@ -1,0 +1,3 @@
+C_CONOUT = 0
+C_STROUT = 1
+

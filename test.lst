@@ -1,0 +1,342 @@
+              	; --------------------------------------
+              	; zasm: assemble "test.asm"
+              	; date: 2020-01-31 03:04:35
+              	; --------------------------------------
+
+
+              	#target rom
+              	
+              	#include "bios.inc"
+0000:         	C_CONOUT = 0
+0001:         	C_STROUT = 1
+              	
+              	
+              		;; SIO equates
+0081:         	SIOA_D	.EQU $81
+0080:         	SIOA_C	.EQU $80
+0083:         	SIOB_D	.EQU $83
+0082:         	SIOB_C	.EQU $82
+              		
+0000:         	#code	_BOOT,0h,200h		; Reset vector, RST vectors, NMI vectors
+              	
+              		;;  see rc2014init.asm
+              		
+0000: F3      	RST00:	di			; interrupts off
+0001: C38202  			jp	Start
+0004: 00      			nop
+0005: 00      			nop
+0006: 00      			nop
+0007: 00      			nop			
+              	
+0008: C31B02  	RST08:	jp	rc2014_sio_TX	; 0x08
+000B: 00      			nop
+000C: 00      			nop
+000D: 00      			nop
+000E: 00      			nop
+000F: 00      			nop
+              	
+0010: C30002  	RST10:	jp	rc2014_getc	; 0x10
+0013: 00      			nop
+0014: 00      			nop
+0015: 00      			nop
+0016: 00      			nop
+0017: 00      			nop
+              	
+0018: C31102  	RST18:	jp	rc2014_pollc	; 0x18
+001B: 00      			nop
+001C: 00      			nop
+001D: 00      			nop
+001E: 00      			nop
+001F: 00      			nop
+              	
+0020: C35502  	RST20:	jp	BIOS_Dispatch	; 0x20
+0023: 00      			nop
+0024: 00      			nop
+0025: 00      			nop
+0026: 00      			nop
+0027: 00      			nop
+              	
+0028: C9      	RST28:	ret
+0029: 00      			nop
+002A: 00      			nop
+002B: 00      			nop
+002C: 00      			nop
+002D: 00      			nop
+              		
+002E: C9      	RST30:	ret
+002F: 00      			nop
+0030: 00      			nop
+0031: 00      			nop
+0032: 00      			nop
+0033: 00      			nop
+              	
+0034: ED4D    	RST38:	reti
+0036: 00      			nop
+0037: 00      			nop
+0038: 00      			nop
+0039: 00      			nop
+003A: 00      			nop
+              		
+              	;;; ;;;;;;;;;;;;;;;;
+              	
+0200:         	#code	_CODE,0x200,0x1E00	; 8K page total
+              		
+              	#include "rc2014.asm"
+              	DoBIOS	.macro
+              			rst	$20
+              			.endm
+              	
+              	;;; rc2014_getc
+              	;;; Wait for the UART to receive a character.
+              	;;; Return the character in HL.
+0200:         	rc2014_getc:
+0200: F5      	        push 	af
+0201: DB80    	waitch:	in 	a,(SIOA_C)
+0203: CB47    	        bit 	0,a
+0205: 28FA    	        jr 	z,waitch
+0207: DB81    	        in 	a,(SIOA_D)
+0209: 2600    	        ld 	h,0
+020B: 6F      	        ld 	l,a
+020C: F1      	        pop 	af
+020D: C9      	        ret
+              	
+              	;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+              	;;; rc2014_putc
+              	;;; Output the byte in L to the SIO.
+              	;;;
+020E:         	rc2014_putc:
+020E: 7D      		ld	a,l
+020F: CF      		rst	$08
+0210: C9      		ret
+              	
+              	;;; rc2014_pollc
+              	;;; Poll the UART receive buffer.
+              	;;; L <- 1 if data available
+              	;;; L <- 0 if no data available
+0211:         	rc2014_pollc:
+0211: 2E00    		ld	l,0
+0213: DB80    		in	a,(SIOA_C)
+0215: CB47    		bit	0,a
+0217: C8      		ret	z
+0218: 2E01    		ld	l,1
+021A: C9      		ret
+              	
+              	;;; ;;;;;;;;;;;;;
+021B:         	rc2014_sio_TX:
+              	#local
+021B: F5      		push af
+021C: DB80    	txbusy: in a,($80)          ; read serial status
+021E: CB57    	        bit 2,a             ; check status bit 2
+0220: 28FA    	        jr z, txbusy        ; loop if zero (serial is busy)
+0222: F1      	        pop af
+0223: D381    	        out ($81), a        ; transmit the character
+0225: C9      	        ret
+              	#endlocal
+              	
+              	;;; ;;;;;;;;;;;;;
+0226:         	rc2014_sio_init:
+              	;;; Set up the SIO channel A for UART transmit/receive.
+0226: 3E30    		ld	a,00110000b	; WR0: error reset, select WR0
+0228: D380    		out	(SIOA_C),a
+022A: 3E18    		ld	a,018h		; WR0: reset
+022C: D380    		out	(SIOA_C),a
+              	
+022E: 3E04    		ld	a,04h		; WR0: select WR4
+0230: D380    		out	(SIOA_C),a
+0232: 3EC4    		ld	a,11000100b	; WR4: CLK/64, 1 stop, N parity (at 2.4MHz, 38400bps)
+0234: D380    		out	(SIOA_C),a
+              	
+0236: 3E05    		ld	a,05h		; WR0: select WR5
+0238: D380    		out	(SIOA_C),a
+023A: 3EE8    		ld	a,11101000b	; DTR, TX 8bit, no BRK, TX on, no RTS
+023C: D380    		out	(SIOA_C),a
+              	
+023E: 3E01    		ld	a,01h		; WR0: select WR1
+0240: D382    		out	(SIOB_C),A
+0242: 3E04    		ld	a,00000100b	; No CH B interrupt
+              	
+0244: 3E01    		ld	a,01h		; WR0: Select WR1
+0246: D380    		out	(SIOA_C),A	
+0248: 3E00    		ld	a,00h		; WR1: All interrupts off
+024A: D380    		out	(SIOA_C),A
+              	
+              		;; Enable SIO RX on channel A.
+024C: 3E03    		ld	a,03h
+024E: D380    		out	(SIOA_C),a
+0250: 3EC1    		ld	a,0C1h		; RX 8bit, RX on, auto enable off
+0252: D380    		out	(SIOA_C),a
+              	
+0254: C9      		ret
+              	
+              		;;;;;;;;;;;;;;;
+              		; BIOS functions
+              	;;; ;;;;;;;;;;;;;;;;;
+              	;;; BIOS functions
+              	;;;
+0255:         	BIOS_Dispatch:
+              		;; Dispatch to the function number C.
+0255: D5      		push	de
+0256: F5      		push	af
+0257: 217E02  		ld		hl,BIOS_FnTable	; grab the jump table address
+025A: 1600    		ld		d,0		; clear D
+              		
+025C: CB21    		sla		c		; shift C to produce a table offset
+025E: 59      		ld		e,c		; E <- C
+025F: 19      		add		hl,de	; Apply the offset.
+0260: 5E23562B		ld		de,(hl)	; Get the destination address.
+0264: 626B    		ld		hl,de	; Move it into HL so we can jump to it.
+              	
+0266: F1      		pop		af		; Restore AF and DE.
+0267: D1      		pop		de
+0268: E9      		jp		(hl)	; Jump to the BIOS function, which RETs back to where we started.
+0269: C9      		ret				; Unnecessary unless something breaks
+              		
+026A:         	C_Conout:
+              		;; CONsole OUTput.
+              		;; 
+              		;; Input:
+              		;; E - character
+026A: 7B      		ld		a,e
+026B: CD1B02  		call	rc2014_sio_TX
+026E: C9      		ret
+              	
+026F:         	C_Strout:
+              		;; STRing OUTput.
+              		;; Input:
+              		;; DE - string address
+              	
+              	#local
+              		;; Perform C_Conout until a 0 is found in the string.
+026F:         	1$:	
+026F: 1A      		ld		a,(de)
+0270: FE00    		cp		#0
+0272: 2809    		jr		z,2$
+0274: D5      		push	de
+0275: 5F      		ld		e,a
+0276: CD6A02  		call	C_Conout
+0279: D1      		pop		de
+027A: 13      		inc		de
+027B: 18F2    		jr		1$
+              	
+027D:         	2$:
+027D: C9      		ret	
+              	#endlocal	
+              	
+027E:         	BIOS_FnTable:
+027E: 6A02    		.dw C_Conout	; C = 0
+0280: 6F02    		.dw	C_Strout	; C = 1
+              		
+0282:         	Start:
+0282: 21F9FF  		ld		hl,$FFF9	; initialize stack
+0285: F9      		ld		sp,hl
+              	
+0286: F3      		di
+0287: CD2602  		call	rc2014_sio_init
+              	
+028A:         	Greet:
+028A: 11DD02  		ld		de,HelloWorld
+028D: 0E01    		ld		c,C_STROUT
+028F: E7      		rst		$20
+              	
+0290: CDFA02  		call	ClearInputBuffer
+              	
+0293:         	GetInputString:
+              		; reset offset
+0293: 11F802  		ld		de,strPrompt
+0296: 0E01    		ld		c,C_STROUT
+              		DoBIOS
+0298: E7      			rst	$20
+              	
+0299: DD21FF80		ld		ix,buffer_Input_offset
+029D: DD360000		ld		(ix),0
+02A1: FD210080		ld		iy,buffer_Input
+              	
+02A5:         	1$:
+02A5: D7      		rst		$10		; Get an input character.
+02A6: FD7500  		ld		(iy),l	; copy the character to the input buffer
+02A9: FD23    		inc		iy		; advance it
+              	
+02AB: FDE5    		push	iy
+02AD: E5      		push	hl
+02AE: 5D      		ld		e,l
+02AF: 0E00    		ld		c,C_CONOUT
+              		DoBIOS
+02B1: E7      			rst	$20
+02B2: E1      		pop		hl
+02B3: FDE1    		pop		iy
+              	
+              		; Is the character 0x0A?
+02B5: 7D      		ld		a,l
+02B6: FE0D    		cp		$0D	; LF
+02B8: 20EB    		jr		nz,1$		; loop if no
+              	
+              		; Yes. Write a CRLF.
+02BA: 1E0D    		ld		e,$0D
+02BC: 0E00    		ld		c,C_CONOUT
+              		DoBIOS
+02BE: E7      			rst	$20
+02BF: 1E0A    		ld		e,$0A
+02C1: 0E00    		ld		c,C_CONOUT
+              		DoBIOS
+02C3: E7      			rst	$20
+              	
+              		; Write string in buffer_Input if yes.
+02C4: 11EA02  		ld		de,strYouEntered
+02C7: 0E01    		ld		c,C_STROUT
+              		DoBIOS
+02C9: E7      			rst	$20
+              	
+02CA: 110080  		ld		de,buffer_Input
+02CD: 0E01    		ld		c,C_STROUT
+              		DoBIOS
+02CF: E7      			rst	$20
+              	
+02D0: 1E0D    		ld		e,$0D
+02D2: 0E00    		ld		c,C_CONOUT
+              		DoBIOS
+02D4: E7      			rst	$20
+02D5: 1E0A    		ld		e,$0A
+02D7: 0E00    		ld		c,C_CONOUT
+              		DoBIOS
+02D9: E7      			rst	$20
+              	
+02DA: C39302  		jp		GetInputString
+              	
+02DD:         	HelloWorld:
+02DD: 48656C6C		.ascii	"Hello Z80!",13,10,0
+02E1: 6F205A38	
+02E5: 30210D0A	
+02E9: 00      	
+02EA:         	strYouEntered:
+02EA: 596F7520		.ascii	"You entered: ",0
+02EE: 656E7465	
+02F2: 7265643A	
+02F6: 2000    	
+02F8:         	strPrompt:
+02F8: 3E00    		.ascii	">",0
+              	
+              	;;
+              	;;
+              	;;
+              	
+02FA:         	ClearInputBuffer:
+02FA: 3E00    		ld		a,0
+02FC: 210080  		ld		hl,buffer_Input
+02FF:         	1$:
+02FF: 3600    		ld		(hl),0
+0301: 23      		inc		hl
+0302: 3C      		inc		a
+0303: FEFF    		cp		$FF
+0305: 20F8    		jr		nz,1$
+0307: C9      		ret
+              	
+8000:         	#data DATA,0x8000,0x8000	; Data section in RAM. Assume 32K of RAM on an RC2014.
+8000: 00000000	buffer_Input:			.ds	255	; 255 bytes of input storage
+8004: 00...   	buffer_Input:			.ds	255	; 255 bytes of input storage
+80FF: 00      	buffer_Input_offset:	.db 0	; current offset into input storage
+              	
+              	#end
+
+
+total time: 0.1369 sec.
+no errors
