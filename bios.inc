@@ -1,3 +1,5 @@
-C_CONOUT = 0
-C_STROUT = 1
-
+B_CONOUT        = 0
+B_STROUT        = 1
+B_CONIN         = 2
+B_CONSTAT       = 3
+B_STRIN         = 4

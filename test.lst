@@ -1,15 +1,17 @@
               	; --------------------------------------
               	; zasm: assemble "test.asm"
-              	; date: 2020-01-31 03:04:35
+              	; date: 2020-02-01 03:38:27
               	; --------------------------------------
 
 
               	#target rom
               	
               	#include "bios.inc"
-0000:         	C_CONOUT = 0
-0001:         	C_STROUT = 1
-              	
+0000:         	B_CONOUT        = 0
+0001:         	B_STROUT        = 1
+0002:         	B_CONIN         = 2
+0003:         	B_CONSTAT       = 3
+0004:         	B_STRIN         = 4
               	
               		;; SIO equates
 0081:         	SIOA_D	.EQU $81
@@ -22,7 +24,7 @@
               		;;  see rc2014init.asm
               		
 0000: F3      	RST00:	di			; interrupts off
-0001: C38202  			jp	Start
+0001: C33C03  			jp	Start
 0004: 00      			nop
 0005: 00      			nop
 0006: 00      			nop
@@ -49,7 +51,7 @@
 001E: 00      			nop
 001F: 00      			nop
               	
-0020: C35502  	RST20:	jp	BIOS_Dispatch	; 0x20
+0020: C35502  	RST20:	jp	B_Dispatch	; 0x20
 0023: 00      			nop
 0024: 00      			nop
 0025: 00      			nop
@@ -81,7 +83,7 @@
               	
 0200:         	#code	_CODE,0x200,0x1E00	; 8K page total
               		
-              	#include "rc2014.asm"
+              	#include 	"rc2014.asm"
               	DoBIOS	.macro
               			rst	$20
               			.endm
@@ -168,16 +170,21 @@
               	
 0254: C9      		ret
               	
-              		;;;;;;;;;;;;;;;
-              		; BIOS functions
               	;;; ;;;;;;;;;;;;;;;;;
               	;;; BIOS functions
               	;;;
-0255:         	BIOS_Dispatch:
+              	;;; API:
+              	;;;		All BIOS functions are prefixed with B_
+              	;;; 	Input is DE
+              	;;;		Output bytes are in A
+              	;;;		Output words are in HL (todo: ?)
+              	;;;
+              	;;;		Do not assume any registers are preserved.
+0255:         	B_Dispatch:
               		;; Dispatch to the function number C.
 0255: D5      		push	de
 0256: F5      		push	af
-0257: 217E02  		ld		hl,BIOS_FnTable	; grab the jump table address
+0257: 21FE02  		ld		hl,BIOS_FnTable	; grab the jump table address
 025A: 1600    		ld		d,0		; clear D
               		
 025C: CB21    		sla		c		; shift C to produce a table offset
@@ -191,7 +198,8 @@
 0268: E9      		jp		(hl)	; Jump to the BIOS function, which RETs back to where we started.
 0269: C9      		ret				; Unnecessary unless something breaks
               		
-026A:         	C_Conout:
+              	;;
+026A:         	B_Conout:
               		;; CONsole OUTput.
               		;; 
               		;; Input:
@@ -200,20 +208,21 @@
 026B: CD1B02  		call	rc2014_sio_TX
 026E: C9      		ret
               	
-026F:         	C_Strout:
+              	;;
+              	#local
+026F:         	B_Strout::
               		;; STRing OUTput.
               		;; Input:
               		;; DE - string address
-              	
-              	#local
-              		;; Perform C_Conout until a 0 is found in the string.
+              		;;
+              		;; Perform B_Conout until a 0 is found in the string.
 026F:         	1$:	
 026F: 1A      		ld		a,(de)
 0270: FE00    		cp		#0
 0272: 2809    		jr		z,2$
 0274: D5      		push	de
 0275: 5F      		ld		e,a
-0276: CD6A02  		call	C_Conout
+0276: CD6A02  		call	B_Conout
 0279: D1      		pop		de
 027A: 13      		inc		de
 027B: 18F2    		jr		1$
@@ -221,122 +230,324 @@
 027D:         	2$:
 027D: C9      		ret	
               	#endlocal	
+              	;;
               	
-027E:         	BIOS_FnTable:
-027E: 6A02    		.dw C_Conout	; C = 0
-0280: 6F02    		.dw	C_Strout	; C = 1
+027E:         	B_Conin:
+              		;; CONsole INput.
+              		;;
+              		;; Blocks until a character is available on the console.
+              		;; Output:
+              		;; A = character received
+027E: CD0002  		call	rc2014_getc	; returns char in L
+0281: 7D      		ld		a,l			; copy it to A and return
+0282: C9      		ret
+              		;;
+              	
+0283:         	B_Constat:
+              		;; CONsole STATus.
+              		;;
+              		;; Output:
+              		;; A  = 0 if no characters are waiting to be read
+              		;; A != 0 if character is waiting
+0283: CD1102  		call	rc2014_pollc
+0286: 7D      		ld		a,l
+0287: C9      		ret
+              	
+              	#local
+0288:         	B_Strin::
+              		;; Read string into buffer.
+              		;; Buffer structure is as follows:
+              		;;	db buffer_size		- how many characters are allowed
+              		;;	db input_length 	- populated after input is complete
+              		;;	byte[buffer_size] 	- the input string
+              		;;
+              		;; Buffer address is placed in DE.
+0288: FD62FD6B		ld		iy,de	; Copy buffer base address to IY
+028C: FD23    		inc		iy
+028E: FD23    		inc		iy		; advance 2 bytes to start of the string buffer
+              	
+0290: DD210000		ld		ix,0	; clear input length
+              	
+0294:         	begin:
+0294: D7      		rst		$10		; Get an input character.
+              	
+              		; Check for Ctrl+H
+0295: 7D      		ld		a,l
+0296: FE08    		cp		$08
+0298: 2805    		jr		z,handlebs
+              	
+029A:         	check2:
+              		; Check for 0x7F (some terminals use this instead)
+029A: 7D      		ld		a,l
+029B: FE7F    		cp		$7F	
+029D: 2027    		jr		nz,charout	; Any other character bypasses
+              	
+029F:         	handlebs:
+              		;; Handle the backspace.
+029F: DD7D    		ld		a,ixl	; is the input length already 0? if so, ignore and go back to waiting for input
+02A1: FE00    		cp		0
+02A3: 28EF    		jr		z,begin
+              	
+              		; Reset the write pointer and length.
+02A5: FD2B    		dec		iy
+02A7: DD2B    		dec		ix
+              	
+02A9: D5      		push	de
+02AA: E5      		push	hl
+02AB: DDE5    		push	ix
+02AD: FDE5    		push	iy
+02AF: 1E08    		ld		e,$08
+02B1: 0E00    		ld		c,B_CONOUT
+              		DoBIOS		; console BS
+02B3: E7      			rst	$20
+02B4: 1E20    		ld		e,$20
+02B6: 0E00    		ld		c,B_CONOUT
+              		DoBIOS		; console SPC
+02B8: E7      			rst	$20
+02B9: 1E08    		ld		e,$08
+02BB: 0E00    		ld		c,B_CONOUT
+              		DoBIOS		; console BS
+02BD: E7      			rst	$20
+02BE: FDE1    		pop		iy
+02C0: DDE1    		pop		ix
+02C2: E1      		pop		hl
+02C3: D1      		pop		de
+02C4: 18CE    		jr		begin	; And we're done.
+              	
+02C6:         	charout:
+              		; write character to buffer
+02C6: FD7500  		ld		(iy),l	; copy the character to the input buffer
+02C9: FD23    		inc		iy		; advance buffer
+02CB: DD23    		inc		ix		; length++
+              	
+              		; TODO: Length == buffer size? If so, don't allow more characters.
+              	
+02CD:         	write:	
+              		; write character to console
+02CD: D5      		push	de
+02CE: E5      		push	hl
+02CF: DDE5    		push	ix
+02D1: FDE5    		push	iy
+02D3: 5D      		ld		e,l
+02D4: 0E00    		ld		c,B_CONOUT
+              		DoBIOS
+02D6: E7      			rst	$20
+02D7: FDE1    		pop		iy
+02D9: DDE1    		pop		ix
+02DB: E1      		pop		hl
+02DC: D1      		pop		de
+              	
+              		; Is the character 0x0D?
+02DD: 7D      		ld		a,l
+02DE: FE0D    		cp		$0D	; LF
+02E0: 20B2    		jr		nz,begin		; loop if no
+              	
+              		; Add a 0x0A
+02E2: 2E0A    		ld		l,0x0A
+02E4: FD7500  		ld		(iy),l	; copy the character to the input buffer
+02E7: FD23    		inc		iy		; advance buffer
+02E9: DD23    		inc		ix		; length++
+              	
+              		; add a null
+02EB: 2E00    		ld		l,0
+02ED: FD7500  		ld		(iy),l	; copy the character to the input buffer
+02F0: FD23    		inc		iy		; advance buffer
+02F2: DD23    		inc		ix		; length++
+              	
+              		; Write the length to the buffer struct
+02F4: DD7D    		ld		a,ixl
+02F6: FD62FD6B		ld		iy,de
+02FA: FD7701  		ld		(iy+1),a
+              	
+02FD: C9      		ret
+              	#endlocal
+              	
+02FE:         	BIOS_FnTable:
+02FE: 6A02    		.dw B_Conout		; C = 0
+0300: 6F02    		.dw	B_Strout		; C = 1
+0302: 7E02    		.dw	B_Conin			; C = 2
+0304: 8302    		.dw	B_Constat		; C = 3
+0306: 8802    		.dw	B_Strin			; C = 4
+              	#include	"strings.asm"
+0308:         	strPrompt:
+0308: 3E00    		.asciz	">"
+030A:         	strCRLF:
+030A: 0D0A00  		.ascii	13,10,0
+              	
+030D:         	HelloWorld:
+030D: 48656C6C		.ascii	"Hello Z80!",13,10,0
+0311: 6F205A38	
+0315: 30210D0A	
+0319: 00      	
+              	
+031A:         	strYouEntered:
+031A: 596F7520		.asciz	"You entered: "
+031E: 656E7465	
+0322: 7265643A	
+0326: 2000    	
+              	
+0328:         	strDbgCmd:
+0328: 436F6D6D	    .asciz  "Command: "
+032C: 616E643A	
+0330: 2000    	
+              	
+0332:         	strDbgArg:
+0332: 20202020	    .asciz  "    Arg: "
+0336: 4172673A	
+033A: 2000    	
               		
-0282:         	Start:
-0282: 21F9FF  		ld		hl,$FFF9	; initialize stack
-0285: F9      		ld		sp,hl
+033C:         	Start:
+033C: 21F9FF  		ld		hl,$FFF9	; initialize stack
+033F: F9      		ld		sp,hl
               	
-0286: F3      		di
-0287: CD2602  		call	rc2014_sio_init
+0340: F3      		di
+0341: CD2602  		call	rc2014_sio_init
               	
-028A:         	Greet:
-028A: 11DD02  		ld		de,HelloWorld
-028D: 0E01    		ld		c,C_STROUT
-028F: E7      		rst		$20
+0344:         	Greet:
+0344: 110D03  		ld		de,HelloWorld
+0347: 0E01    		ld		c,B_STROUT
+0349: E7      		rst		$20
               	
-0290: CDFA02  		call	ClearInputBuffer
-              	
-0293:         	GetInputString:
+034A:         	GetInputString:
               		; reset offset
-0293: 11F802  		ld		de,strPrompt
-0296: 0E01    		ld		c,C_STROUT
+034A: 110803  		ld		de,strPrompt
+034D: 0E01    		ld		c,B_STROUT
               		DoBIOS
-0298: E7      			rst	$20
+034F: E7      			rst	$20
               	
-0299: DD21FF80		ld		ix,buffer_Input_offset
-029D: DD360000		ld		(ix),0
-02A1: FD210080		ld		iy,buffer_Input
-              	
-02A5:         	1$:
-02A5: D7      		rst		$10		; Get an input character.
-02A6: FD7500  		ld		(iy),l	; copy the character to the input buffer
-02A9: FD23    		inc		iy		; advance it
-              	
-02AB: FDE5    		push	iy
-02AD: E5      		push	hl
-02AE: 5D      		ld		e,l
-02AF: 0E00    		ld		c,C_CONOUT
+0350: CDCE03  		call	ClearInputBuffer
+0353: 110080  		ld		de,buffer_base
+0356: 0E04    		ld		c,B_STRIN
               		DoBIOS
-02B1: E7      			rst	$20
-02B2: E1      		pop		hl
-02B3: FDE1    		pop		iy
-              	
-              		; Is the character 0x0A?
-02B5: 7D      		ld		a,l
-02B6: FE0D    		cp		$0D	; LF
-02B8: 20EB    		jr		nz,1$		; loop if no
-              	
-              		; Yes. Write a CRLF.
-02BA: 1E0D    		ld		e,$0D
-02BC: 0E00    		ld		c,C_CONOUT
+0358: E7      			rst	$20
+0359: 110A03  		ld		de,strCRLF
+035C: 0E01    		ld		c,B_STROUT
               		DoBIOS
-02BE: E7      			rst	$20
-02BF: 1E0A    		ld		e,$0A
-02C1: 0E00    		ld		c,C_CONOUT
-              		DoBIOS
-02C3: E7      			rst	$20
+035E: E7      			rst	$20
               	
-              		; Write string in buffer_Input if yes.
-02C4: 11EA02  		ld		de,strYouEntered
-02C7: 0E01    		ld		c,C_STROUT
+035F: 111A03  		ld		de,strYouEntered
+0362: 0E01    		ld		c,B_STROUT
               		DoBIOS
-02C9: E7      			rst	$20
-              	
-02CA: 110080  		ld		de,buffer_Input
-02CD: 0E01    		ld		c,C_STROUT
+0364: E7      			rst	$20
+0365: 110280  		ld		de,buffer_Input
+0368: 0E01    		ld		c,B_STROUT
               		DoBIOS
-02CF: E7      			rst	$20
-              	
-02D0: 1E0D    		ld		e,$0D
-02D2: 0E00    		ld		c,C_CONOUT
+036A: E7      			rst	$20
+036B: 110A03  		ld		de,strCRLF
+036E: 0E01    		ld		c,B_STROUT
               		DoBIOS
-02D4: E7      			rst	$20
-02D5: 1E0A    		ld		e,$0A
-02D7: 0E00    		ld		c,C_CONOUT
+0370: E7      			rst	$20
+              	
+              		; Take the first two bytes of buffer_Input and put them in the command register.
+0371: ED5B0280		ld		de,(buffer_Input)
+0375: ED530181		ld		(MON_Command),de
+              	
+0379:         	CheckCmdLength:
+              		; Assume argument starts at buffer_Input+3
+0379: 3E03    		ld		a,3
+037B: 320D81  		ld		(MON_ArgStartsAt),a
+              	
+              		; Is the second byte of the command register 0x20? 
+              		; If so, the argument starts at buffer_Input+2.
+037E: 3A0281  		ld		a,(MON_Command+1)
+0381: FE20    		cp		$20
+0383: 2005    		jr		nz,GetArgument
+0385: 3E02    		ld		a,2
+0387: 320D81  		ld		(MON_ArgStartsAt),a
+              	
+038A:         	GetArgument:
+              	#local
+              		; Copy 10 characters from buffer_Input+MON_ArgStartsAt into MON_Argument
+038A: 060A    		ld		b,10
+038C: 210280  		ld		hl,buffer_Input
+038F: 110381  		ld		de,MON_Argument
+              	
+0392: 3A0D81  		ld		a,(MON_ArgStartsAt)
+0395: 4F      		ld		c,a
+0396: 0600    		ld		b,0		; BC is now ArgStartsAt
+0398: 09      		add		hl,bc
+              		
+              		; HL is now the beginning of the argument.
+              		; DE is now the destination address.
+0399:         	ArgumentCopyLoop:
+0399: 7E      		ld		a,(hl)
+039A: 12      		ld		(de),a
+039B: 23      		inc		hl
+039C: 13      		inc		de
+039D: 10FA    		djnz	ArgumentCopyLoop
+              	#endlocal
+              	
+              		; Debug output
+039F: 112803  		ld		de,strDbgCmd
+03A2: 0E01    		ld		c,B_STROUT
               		DoBIOS
-02D9: E7      			rst	$20
+03A4: E7      			rst	$20
+03A5: DD2A0181		ld		ix,(MON_Command)
+03A9: DD5D    		ld		e,ixl
+03AB: 0E00    		ld		c,B_CONOUT
+              		DoBIOS
+03AD: E7      			rst	$20
+03AE: DD5C    		ld		e,ixh
+03B0: 0E00    		ld		c,B_CONOUT
+              		DoBIOS
+03B2: E7      			rst	$20
+03B3: 110A03  		ld		de,strCRLF
+03B6: 0E01    		ld		c,B_STROUT
+              		DoBIOS
+03B8: E7      			rst	$20
               	
-02DA: C39302  		jp		GetInputString
+03B9: 113203  		ld		de,strDbgArg
+03BC: 0E01    		ld		c,B_STROUT
+              		DoBIOS
+03BE: E7      			rst	$20
+03BF: 110381  		ld		de,MON_Argument
+03C2: 0E01    		ld		c,B_STROUT
+              		DoBIOS
+03C4: E7      			rst	$20
+03C5: 110A03  		ld		de,strCRLF
+03C8: 0E01    		ld		c,B_STROUT
+              		DoBIOS
+03CA: E7      			rst	$20
               	
-02DD:         	HelloWorld:
-02DD: 48656C6C		.ascii	"Hello Z80!",13,10,0
-02E1: 6F205A38	
-02E5: 30210D0A	
-02E9: 00      	
-02EA:         	strYouEntered:
-02EA: 596F7520		.ascii	"You entered: ",0
-02EE: 656E7465	
-02F2: 7265643A	
-02F6: 2000    	
-02F8:         	strPrompt:
-02F8: 3E00    		.ascii	">",0
+              	; Loop...
+03CB:         	InputLoopEnd:
+03CB: C34A03  		jp		GetInputString
               	
               	;;
               	;;
               	;;
+              	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
               	
-02FA:         	ClearInputBuffer:
-02FA: 3E00    		ld		a,0
-02FC: 210080  		ld		hl,buffer_Input
-02FF:         	1$:
-02FF: 3600    		ld		(hl),0
-0301: 23      		inc		hl
-0302: 3C      		inc		a
-0303: FEFF    		cp		$FF
-0305: 20F8    		jr		nz,1$
-0307: C9      		ret
+03CE:         	ClearInputBuffer:
+03CE: 3E00    		ld		a,0
+03D0: 210280  		ld		hl,buffer_Input
+03D3:         	1$:
+03D3: 3600    		ld		(hl),0
+03D5: 23      		inc		hl
+03D6: 3C      		inc		a
+03D7: FEFF    		cp		$FF
+03D9: 20F8    		jr		nz,1$
+03DB: C9      		ret
+              	
+              	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
               	
 8000:         	#data DATA,0x8000,0x8000	; Data section in RAM. Assume 32K of RAM on an RC2014.
-8000: 00000000	buffer_Input:			.ds	255	; 255 bytes of input storage
-8004: 00...   	buffer_Input:			.ds	255	; 255 bytes of input storage
-80FF: 00      	buffer_Input_offset:	.db 0	; current offset into input storage
+              	
+8000:         	buffer_base:
+8000: 00      	buffer_len:				.db 0
+8001: 00      	buffer_inputsize:		.db 0
+8002: 00000000	buffer_Input:			.ds	255	; 255 bytes of input storage
+8006: 00...   	buffer_Input:			.ds	255	; 255 bytes of input storage
+              	
+              	;;;;;;;;;;;;;;;;;;;
+              	; ROM monitor data stuff
+8101: 0000    	MON_Command:		.dw		0
+8103: 00000000	MON_Argument:		.ds		10
+8107: 00...   	MON_Argument:		.ds		10
+810D: 00      	MON_ArgStartsAt: 	.db		0
               	
               	#end
 
 
-total time: 0.1369 sec.
+total time: 0.2129 sec.
 no errors

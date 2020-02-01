@@ -84,12 +84,17 @@ rc2014_sio_init:
 
 	ret
 
-	;;;;;;;;;;;;;;;
-	; BIOS functions
 ;;; ;;;;;;;;;;;;;;;;;
 ;;; BIOS functions
 ;;;
-BIOS_Dispatch:
+;;; API:
+;;;		All BIOS functions are prefixed with B_
+;;; 	Input is DE
+;;;		Output bytes are in A
+;;;		Output words are in HL (todo: ?)
+;;;
+;;;		Do not assume any registers are preserved.
+B_Dispatch:
 	;; Dispatch to the function number C.
 	push	de
 	push	af
@@ -107,7 +112,8 @@ BIOS_Dispatch:
 	jp		(hl)	; Jump to the BIOS function, which RETs back to where we started.
 	ret				; Unnecessary unless something breaks
 	
-C_Conout:
+;;
+B_Conout:
 	;; CONsole OUTput.
 	;; 
 	;; Input:
@@ -116,20 +122,21 @@ C_Conout:
 	call	rc2014_sio_TX
 	ret
 
-C_Strout:
+;;
+#local
+B_Strout::
 	;; STRing OUTput.
 	;; Input:
 	;; DE - string address
-
-#local
-	;; Perform C_Conout until a 0 is found in the string.
+	;;
+	;; Perform B_Conout until a 0 is found in the string.
 1$:	
 	ld		a,(de)
 	cp		#0
 	jr		z,2$
 	push	de
 	ld		e,a
-	call	C_Conout
+	call	B_Conout
 	pop		de
 	inc		de
 	jr		1$
@@ -137,7 +144,137 @@ C_Strout:
 2$:
 	ret	
 #endlocal	
+;;
+
+B_Conin:
+	;; CONsole INput.
+	;;
+	;; Blocks until a character is available on the console.
+	;; Output:
+	;; A = character received
+	call	rc2014_getc	; returns char in L
+	ld		a,l			; copy it to A and return
+	ret
+	;;
+
+B_Constat:
+	;; CONsole STATus.
+	;;
+	;; Output:
+	;; A  = 0 if no characters are waiting to be read
+	;; A != 0 if character is waiting
+	call	rc2014_pollc
+	ld		a,l
+	ret
+
+#local
+B_Strin::
+	;; Read string into buffer.
+	;; Buffer structure is as follows:
+	;;	db buffer_size		- how many characters are allowed
+	;;	db input_length 	- populated after input is complete
+	;;	byte[buffer_size] 	- the input string
+	;;
+	;; Buffer address is placed in DE.
+	ld		iy,de	; Copy buffer base address to IY
+	inc		iy
+	inc		iy		; advance 2 bytes to start of the string buffer
+
+	ld		ix,0	; clear input length
+
+begin:
+	rst		$10		; Get an input character.
+
+	; Check for Ctrl+H
+	ld		a,l
+	cp		$08
+	jr		z,handlebs
+
+check2:
+	; Check for 0x7F (some terminals use this instead)
+	ld		a,l
+	cp		$7F	
+	jr		nz,charout	; Any other character bypasses
+
+handlebs:
+	;; Handle the backspace.
+	ld		a,ixl	; is the input length already 0? if so, ignore and go back to waiting for input
+	cp		0
+	jr		z,begin
+
+	; Reset the write pointer and length.
+	dec		iy
+	dec		ix
+
+	push	de
+	push	hl
+	push	ix
+	push	iy
+	ld		e,$08
+	ld		c,B_CONOUT
+	DoBIOS		; console BS
+	ld		e,$20
+	ld		c,B_CONOUT
+	DoBIOS		; console SPC
+	ld		e,$08
+	ld		c,B_CONOUT
+	DoBIOS		; console BS
+	pop		iy
+	pop		ix
+	pop		hl
+	pop		de
+	jr		begin	; And we're done.
+
+charout:
+	; write character to buffer
+	ld		(iy),l	; copy the character to the input buffer
+	inc		iy		; advance buffer
+	inc		ix		; length++
+
+	; TODO: Length == buffer size? If so, don't allow more characters.
+
+write:	
+	; write character to console
+	push	de
+	push	hl
+	push	ix
+	push	iy
+	ld		e,l
+	ld		c,B_CONOUT
+	DoBIOS
+	pop		iy
+	pop		ix
+	pop		hl
+	pop		de
+
+	; Is the character 0x0D?
+	ld		a,l
+	cp		$0D	; LF
+	jr		nz,begin		; loop if no
+
+	; Add a 0x0A
+	ld		l,0x0A
+	ld		(iy),l	; copy the character to the input buffer
+	inc		iy		; advance buffer
+	inc		ix		; length++
+
+	; add a null
+	ld		l,0
+	ld		(iy),l	; copy the character to the input buffer
+	inc		iy		; advance buffer
+	inc		ix		; length++
+
+	; Write the length to the buffer struct
+	ld		a,ixl
+	ld		iy,de
+	ld		(iy+1),a
+
+	ret
+#endlocal
 
 BIOS_FnTable:
-	.dw C_Conout	; C = 0
-	.dw	C_Strout	; C = 1
+	.dw B_Conout		; C = 0
+	.dw	B_Strout		; C = 1
+	.dw	B_Conin			; C = 2
+	.dw	B_Constat		; C = 3
+	.dw	B_Strin			; C = 4

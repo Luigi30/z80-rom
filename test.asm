@@ -40,7 +40,7 @@ RST18:	jp	rc2014_pollc	; 0x18
 		nop
 		nop
 
-RST20:	jp	BIOS_Dispatch	; 0x20
+RST20:	jp	B_Dispatch	; 0x20
 		nop
 		nop
 		nop
@@ -72,7 +72,8 @@ RST38:	reti
 
 #code	_CODE,0x200,0x1E00	; 8K page total
 	
-#include "rc2014.asm"
+#include 	"rc2014.asm"
+#include	"strings.asm"
 	
 Start:
 	ld		hl,$FFF9	; initialize stack
@@ -83,75 +84,105 @@ Start:
 
 Greet:
 	ld		de,HelloWorld
-	ld		c,C_STROUT
+	ld		c,B_STROUT
 	rst		$20
-
-	call	ClearInputBuffer
 
 GetInputString:
 	; reset offset
 	ld		de,strPrompt
-	ld		c,C_STROUT
+	ld		c,B_STROUT
 	DoBIOS
 
-	ld		ix,buffer_Input_offset
-	ld		(ix),0
-	ld		iy,buffer_Input
-
-1$:
-	rst		$10		; Get an input character.
-	ld		(iy),l	; copy the character to the input buffer
-	inc		iy		; advance it
-
-	push	iy
-	push	hl
-	ld		e,l
-	ld		c,C_CONOUT
+	call	ClearInputBuffer
+	ld		de,buffer_base
+	ld		c,B_STRIN
 	DoBIOS
-	pop		hl
-	pop		iy
-
-	; Is the character 0x0A?
-	ld		a,l
-	cp		$0D	; LF
-	jr		nz,1$		; loop if no
-
-	; Yes. Write a CRLF.
-	ld		e,$0D
-	ld		c,C_CONOUT
-	DoBIOS
-	ld		e,$0A
-	ld		c,C_CONOUT
+	ld		de,strCRLF
+	ld		c,B_STROUT
 	DoBIOS
 
-	; Write string in buffer_Input if yes.
 	ld		de,strYouEntered
-	ld		c,C_STROUT
+	ld		c,B_STROUT
 	DoBIOS
-
 	ld		de,buffer_Input
-	ld		c,C_STROUT
+	ld		c,B_STROUT
+	DoBIOS
+	ld		de,strCRLF
+	ld		c,B_STROUT
 	DoBIOS
 
-	ld		e,$0D
-	ld		c,C_CONOUT
+	; Take the first two bytes of buffer_Input and put them in the command register.
+	ld		de,(buffer_Input)
+	ld		(MON_Command),de
+
+CheckCmdLength:
+	; Assume argument starts at buffer_Input+3
+	ld		a,3
+	ld		(MON_ArgStartsAt),a
+
+	; Is the second byte of the command register 0x20? 
+	; If so, the argument starts at buffer_Input+2.
+	ld		a,(MON_Command+1)
+	cp		$20
+	jr		nz,GetArgument
+	ld		a,2
+	ld		(MON_ArgStartsAt),a
+
+GetArgument:
+#local
+	; Copy 10 characters from buffer_Input+MON_ArgStartsAt into MON_Argument
+	ld		b,10
+	ld		hl,buffer_Input
+	ld		de,MON_Argument
+
+	ld		a,(MON_ArgStartsAt)
+	ld		c,a
+	ld		b,0		; BC is now ArgStartsAt
+	add		hl,bc
+	
+	; HL is now the beginning of the argument.
+	; DE is now the destination address.
+ArgumentCopyLoop:
+	ld		a,(hl)
+	ld		(de),a
+	inc		hl
+	inc		de
+	djnz	ArgumentCopyLoop
+#endlocal
+
+	; Debug output
+	ld		de,strDbgCmd
+	ld		c,B_STROUT
 	DoBIOS
-	ld		e,$0A
-	ld		c,C_CONOUT
+	ld		ix,(MON_Command)
+	ld		e,ixl
+	ld		c,B_CONOUT
+	DoBIOS
+	ld		e,ixh
+	ld		c,B_CONOUT
+	DoBIOS
+	ld		de,strCRLF
+	ld		c,B_STROUT
 	DoBIOS
 
+	ld		de,strDbgArg
+	ld		c,B_STROUT
+	DoBIOS
+	ld		de,MON_Argument
+	ld		c,B_STROUT
+	DoBIOS
+	ld		de,strCRLF
+	ld		c,B_STROUT
+	DoBIOS
+
+; Loop...
+InputLoopEnd:
 	jp		GetInputString
 
-HelloWorld:
-	.ascii	"Hello Z80!",13,10,0
-strYouEntered:
-	.ascii	"You entered: ",0
-strPrompt:
-	.ascii	">",0
-
 ;;
 ;;
 ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ClearInputBuffer:
 	ld		a,0
@@ -164,8 +195,19 @@ ClearInputBuffer:
 	jr		nz,1$
 	ret
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 #data DATA,0x8000,0x8000	; Data section in RAM. Assume 32K of RAM on an RC2014.
+
+buffer_base:
+buffer_len:				.db 0
+buffer_inputsize:		.db 0
 buffer_Input:			.ds	255	; 255 bytes of input storage
-buffer_Input_offset:	.db 0	; current offset into input storage
+
+;;;;;;;;;;;;;;;;;;;
+; ROM monitor data stuff
+MON_Command:		.dw		0
+MON_Argument:		.ds		10
+MON_ArgStartsAt: 	.db		0
 
 #end
