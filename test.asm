@@ -8,6 +8,8 @@ SIOA_C	.EQU $80
 SIOB_D	.EQU $83
 SIOB_C	.EQU $82
 	
+#data 	DATA,0x8000,0x8000
+
 #code	_BOOT,0h,200h		; Reset vector, RST vectors, NMI vectors
 
 	;;  see rc2014init.asm
@@ -71,17 +73,18 @@ RST38:	reti
 ;;; ;;;;;;;;;;;;;;;;
 
 #code	_CODE,0x200,0x1E00	; 8K page total
-	
-#include 	"rc2014.asm"
-#include	"strings.asm"
-	
+
 Start:
 	ld		hl,$FFF9	; initialize stack
 	ld		sp,hl
 
 	di
 	call	rc2014_sio_init
+	jp		Greet
 
+#include 	"rc2014.asm"
+#include	"strings.asm"
+	
 Greet:
 	ld		de,HelloWorld
 	ld		c,B_STROUT
@@ -96,16 +99,6 @@ GetInputString:
 	call	ClearInputBuffer
 	ld		de,buffer_base
 	ld		c,B_STRIN
-	DoBIOS
-	ld		de,strCRLF
-	ld		c,B_STROUT
-	DoBIOS
-
-	ld		de,strYouEntered
-	ld		c,B_STROUT
-	DoBIOS
-	ld		de,buffer_Input
-	ld		c,B_STROUT
 	DoBIOS
 	ld		de,strCRLF
 	ld		c,B_STROUT
@@ -133,12 +126,7 @@ GotCmdLength:
 	call	GetArgument
 	call	CmdDebugOutput
 
-	; debug: preload some values
-	ld		hl,$0200
-	ld		(MemoryOutputStartAddr),hl
-	ld		hl,$023F
-	ld		(MemoryOutputEndAddr),hl
-	call	Monitor_DoMemoryOutput
+	call	Monitor_InterpretCommand
 
 ; Loop...
 InputLoopEnd:
@@ -151,10 +139,190 @@ InputLoopEnd:
 	jp		GetInputString
 
 ;;;;;;;;
+
+ConvertStringToHex8:
+; Convert the string in StringToHex_Source to a 8-bit hex value.
+#local
+	ld		ix,StringToHex_Source
+	ld		iy,StringToHex_Dest
+
+DoConversion:
+Digit0:
+	; Less than $40? Subtract $30.
+	; More than $40? Subtract $40.
+	ld		a,(ix+0)
+	cp		$40
+	jp		m,Digit0_IsNumber
+
+Digit0_IsAlpha:
+	add		a,-$37
+	sla		a
+	sla		a
+	sla		a
+	sla		a
+	ld		(iy+0),a
+	jr		Digit1
+
+Digit0_IsNumber:
+	add		a,-$30
+	sla		a
+	sla		a
+	sla		a
+	sla		a
+	ld		(iy+0),a
+	jr		Digit1
+
+Digit1:
+	; Less than $40? Subtract $30.
+	; More than $40? Subtract $40.
+	ld		a,(ix+1)
+	cp		$40
+	jp		m,Digit1_IsNumber
+
+Digit1_IsAlpha:
+	add		a,-$37
+	or		(iy+0)
+	ld		(iy+0),a
+	jr		Done
+
+Digit1_IsNumber:
+	add		a,-$30
+	or		(iy+0)
+	ld		(iy+0),a
+
+Done:
+	ret
+#endlocal
+
+;;;;;;;;
+ConvertStringToHex16:
+; Convert the string in StringToHex_Source to a 16-bit hex value.
+#local
+	ld		ix,StringToHex_Source
+	ld		iy,StringToHex_Dest
+
+	; Right-justify the value and add leading zeroes.
+JustifyLoop:
+	ld		a,(ix+3)
+	cp		0
+	jr		nz,DoConversion
+	ld		a,(ix+2)
+	ld		(ix+3),a
+	ld		a,(ix+1)
+	ld		(ix+2),a
+	ld		a,(ix+0)
+	ld		(ix+1),a
+	ld		a,$30		; ASCII 0
+	ld		(ix+0),a
+	jr		JustifyLoop
+
+DoConversion:
+Digit0:
+	; Less than $40? Subtract $30.
+	; More than $40? Subtract $40.
+	ld		a,(ix+0)
+	cp		$40
+	jp		p,Digit0_IsAlpha
+	jp		m,Digit0_IsNumber
+
+Digit0_IsAlpha:
+	add		a,-$37
+	sla		a
+	sla		a
+	sla		a
+	sla		a
+	ld		(iy+1),a
+	jr		Digit1
+
+Digit0_IsNumber:
+	add		a,-$30
+	sla		a
+	sla		a
+	sla		a
+	sla		a
+	ld		(iy+1),a
+	jr		Digit1
+
+Digit1:
+	; Less than $40? Subtract $30.
+	; More than $40? Subtract $40.
+	ld		a,(ix+1)
+	cp		$40
+	jp		p,Digit1_IsAlpha
+	jp		m,Digit1_IsNumber
+
+Digit1_IsAlpha:
+	add		a,-$37
+	or		(iy+1)
+	ld		(iy+1),a
+	jr		Digit2
+
+Digit1_IsNumber:
+	add		a,-$30
+	or		(iy+1)
+	ld		(iy+1),a
+	jr		Digit2
+
+Digit2:
+	; Less than $40? Subtract $30.
+	; More than $40? Subtract $40.
+	ld		a,(ix+2)
+	cp		$40
+	jp		p,Digit2_IsAlpha
+	jp		m,Digit2_IsNumber
+
+Digit2_IsAlpha:
+	add		a,-$37
+	sla		a
+	sla		a
+	sla		a
+	sla		a
+	ld		(iy+1),a
+	jr		Digit3
+
+Digit2_IsNumber:
+	add		a,-$30
+	sla		a
+	sla		a
+	sla		a
+	sla		a
+	ld		(iy+0),a
+	jr		Digit3
+
+Digit3:
+	; Less than $40? Subtract $30.
+	; More than $40? Subtract $40.
+	ld		a,(ix+3)
+	cp		$40
+	jp		p,Digit3_IsAlpha
+	jp		m,Digit3_IsNumber
+
+Digit3_IsAlpha:
+	add		a,-$37
+	or		(iy+0)
+	ld		(iy+0),a
+	jr		Done
+
+Digit3_IsNumber:
+	add		a,-$30
+	or		(iy+0)
+	ld		(iy+0),a
+	jr		Done
+
+Done:
+	ret
+#endlocal
+;;;;;;;;
+
+;;;;;;;;
 ConvertHex16ToString:
 	; Convert the value in HexToString_Source to ASCII characters.
 	ld		ix,HexToString_Source
 	ld		iy,HexToString_Dest
+
+	ld		hl,0
+	ld		(iy+0),hl
+	ld		(iy+2),hl
 
 	; A
 	ld		a,(ix+1)
@@ -212,6 +380,10 @@ ConvertHex8ToString:
 	ld		iy,HexToString_Dest
 	ld		ix,HexToString_Source
 
+	ld		hl,0
+	ld		(iy+0),hl
+	ld		(iy+2),hl
+
 	ld		a,(ix)
 	and		$F0		; now we only have A
 	srl		a	
@@ -257,7 +429,34 @@ CmdDebugOutput:
 	ld		de,strDbgArg
 	ld		c,B_STROUT
 	DoBIOS
-	ld		de,MON_Argument
+	ld		de,MON_Argument1
+	ld		c,B_STROUT
+	DoBIOS
+	ld		de,strCRLF
+	ld		c,B_STROUT
+	DoBIOS
+	ld		de,strDbgArg
+	ld		c,B_STROUT
+	DoBIOS
+	ld		de,MON_Argument2
+	ld		c,B_STROUT
+	DoBIOS
+	ld		de,strCRLF
+	ld		c,B_STROUT
+	DoBIOS
+	ld		de,strDbgArg
+	ld		c,B_STROUT
+	DoBIOS
+	ld		de,MON_Argument3
+	ld		c,B_STROUT
+	DoBIOS
+	ld		de,strCRLF
+	ld		c,B_STROUT
+	DoBIOS
+	ld		de,strDbgArg
+	ld		c,B_STROUT
+	DoBIOS
+	ld		de,MON_Argument4
 	ld		c,B_STROUT
 	DoBIOS
 	ld		de,strCRLF
@@ -269,30 +468,56 @@ CmdDebugOutput:
 ;;;;;;;;;;;;;;;;;;
 GetArgument:
 #local
-	; Copy B characters from buffer_Input+MON_ArgStartsAt into MON_Argument
+	; Clear the 4 argument buffers.
+	ld		b,16*4
+	ld		a,0
+	ld		hl,MON_Argument1
+1$:
+	ld		(hl),0
+	inc		hl
+	djnz	1$
+
+	; Copy from buffer_Input+MON_ArgStartsAt into the argument buffers.
+	; Max 4 space-delimited arguments.
+	ld		de,MON_Argument1	; <-- MUST BE PAGE ALIGNED FOR POINTER MATH TO WORK!
 	ld		hl,buffer_Input
-	ld		de,MON_Argument
+	ld		ix,MON_Argument1
 
 	ld		a,(MON_ArgStartsAt)
 	ld		c,a
 	ld		b,0		; BC is now ArgStartsAt
-	add		hl,bc
-	
+	add		hl,bc	; And HL is now the beginning of the arguments.
+
 	; HL is now the beginning of the argument.
 	; DE is now the destination address.
 ArgumentCopyLoop:
+	; Copy until we find a SPC. A CR/LF advances to the next argument buffer.
+	; Only 4 arguments are supported.
 	ld		a,(hl)
-	ld		(de),a
 	inc		hl
+	cp		$0D
+	jr		z,done
+	cp		$20
+	jr		nz,copychar
+	
+	; Advance to the next argument.
+	ld		a,ixl
+	add		a,16
+	ld		e,a
+	add		a,16
+	ld		ixl,a
+
+	jr		ArgumentCopyLoop
+
+copychar:
+	ld		(de),a
 	inc		de
 	djnz	ArgumentCopyLoop
 
+done:
 	ret
 #endlocal
 
-;;
-;;
-;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ClearInputBuffer:
 	ld		a,0
@@ -305,107 +530,43 @@ ClearInputBuffer:
 	jr		nz,1$
 	ret
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#include "commands/memory.asm"
+#include "commands/go.asm"
+#include "commands/upload.asm"
 
-Monitor_DoMemoryLabel:
-	; Formatting: start address
-	ld		hl,(MemoryOutputCurAddr)
-	ld		(HexToString_Source),hl
-	call	ConvertHex16ToString
-	ld		de,HexToString_Dest
+#code	_CODE
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Monitor_InterpretCommand:
+	; The Z80 version of a switch statement?
+	ld		a,(MON_Command)
+
+	; JP to the command that matches. 
+	; If no command matches, fall through to an error.
+	; The command's RET will return to *this function's caller*
+	; i.e. the command loop.
+
+	; Command: Memory
+	cp		"M"
+	jp		z,Monitor_CMD_Memory
+
+	cp		"G"
+	jp		z,Monitor_CMD_Go
+
+	cp		"U"
+	jp		z,Monitor_CMD_Upload
+
+	ld		de,strCmdUnknown
 	ld		c,B_STROUT
 	DoBIOS
-	ld		e,":"
-	ld		c,B_CONOUT
-	DoBIOS
-	ld		e," "
-	ld		c,B_CONOUT
-	DoBIOS
-	ret
-
-Monitor_PrintBytes:
-	; Input:
-	; B  - how many bytes to dump
-	; IX - pointer to start of memory area to dump
-	push	bc
-
-	ld		a,(ix)						; A has a memory byte
-	ld		(HexToString_Source),a		
-	push	ix
-	call	ConvertHex8ToString			; Convert it to ASCII
-
-	; Print two characters of output and a space
-	ld		a,(HexToString_Dest)
-	ld		e,a
-	ld		c,B_CONOUT
-	DoBIOS								
-	ld		a,(HexToString_Dest+1)
-	ld		e,a
-	ld		c,B_CONOUT
-	DoBIOS
-	ld		e," "
-	ld		c,B_CONOUT
-	DoBIOS
-
-	; Advance the memory source pointer. Continue until B == 0.
-	pop		ix
-	inc		ix
-
-	pop		bc
-	djnz	Monitor_PrintBytes
-
-	ret
-
-Monitor_DoMemoryOutput:
-#local
-	ld		hl,(MemoryOutputStartAddr)
-	ld		(MemoryOutputCurAddr),hl
-
-	call	Monitor_DoMemoryLabel
-
-	; Output 16 memory bytes
-	ld		hl,(MemoryOutputEndAddr)
-	ld		bc,(MemoryOutputStartAddr)
-	scf
-	ccf		; Clear carry flag to get the proper subtraction result.
-	inc		hl	
-	sbc		hl,bc
-	ld		(MemoryOutputBytesLeft),hl
-
-	ld		ix,(MemoryOutputStartAddr)
-	ld		b,16
-	call	Monitor_PrintBytes
-
-EndMemoryLine:
 	ld		de,strCRLF
 	ld		c,B_STROUT
 	DoBIOS
 
-	ld		hl,(MemoryOutputBytesLeft)
-	scf
-	ld		bc,16
-	sbc		hl,bc	; Subtract the 16 bytes we already read.
-	jp		m,Done	; End if we're out of memory to write.
-	jp		z,Done	; End if we're out of memory to write.
-	ld		(MemoryOutputBytesLeft),hl
-
-	ld		bc,16
-	ld		hl,(MemoryOutputCurAddr)
-	add		hl,bc						; Advance start pointer
-	ld		(MemoryOutputCurAddr),hl	
-	call	Monitor_DoMemoryLabel
-
-	ld		b,16						; Another 16 bytes
-	ld		ix,(MemoryOutputCurAddr)
-	call	Monitor_PrintBytes
-	jp		EndMemoryLine
-
-Done:
 	ret
-#endlocal
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#data DATA,0x8000,0x8000	; Data section in RAM. Assume 32K of RAM on an RC2014.
+#data	DATA	; Data section in RAM. Assume 32K of RAM on an RC2014.
 
 buffer_base:
 buffer_len:				.db 0
@@ -425,10 +586,20 @@ MemoryOutputCurAddr:	.dw 0
 MemoryOutputEndAddr:	.dw 0
 MemoryOutputBytesLeft:	.dw 0
 
+;;;
+HEX_DestinationAddr:	.dw 0
+
 ;;;;;;;;;;;;;;;;;;;
 ; ROM monitor data stuff
-MON_Command:		.dw		0
-MON_Argument:		.ds		10
+MON_PreviousCmd:	.db		0,0
+MON_Command:		.db		0,0
+
+MON_ArgDestPtr:		.dw		0
 MON_ArgStartsAt: 	.db		0
+	.org $8800			; ensure these are page-aligned
+MON_Argument1:		.ds		16
+MON_Argument2:		.ds		16
+MON_Argument3:		.ds		16
+MON_Argument4:		.ds		16
 
 #end

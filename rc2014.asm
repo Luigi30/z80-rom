@@ -1,7 +1,3 @@
-DoBIOS	.macro
-		rst	$20
-		.endm
-
 ;;; rc2014_getc
 ;;; Wait for the UART to receive a character.
 ;;; Return the character in HL.
@@ -251,12 +247,6 @@ write:
 	ld		a,l
 	cp		$0D	; LF
 	jr		nz,begin		; loop if no
-
-	; Add a 0x0A
-	ld		l,0x0A
-	ld		(iy),l	; copy the character to the input buffer
-	inc		iy		; advance buffer
-	inc		ix		; length++
 
 	; add a null
 	ld		l,0
