@@ -3,6 +3,15 @@
 #local
 Monitor_CMD_Upload::
     ; Each HEX record contains the destination address.
+    ld		hl,(MON_Argument1+0)
+	ld		(StringToHex_Source+0),hl
+	ld		hl,(MON_Argument1+2)
+	ld		(StringToHex_Source+2),hl
+
+	call	ConvertStringToHex16
+	ld		hl,(StringToHex_Dest)
+    ld      (HEX_BaseAddress),hl
+
 	ld		de,STR_HEX_ReadyToReceive
 	ld		c,B_STROUT
 	DoBIOS
@@ -24,8 +33,12 @@ Done:
 #endlocal
 
 HEX_CopyRecord:
-    ld      hl,HEX_RecordData
     ld      de,(HEX_Address)
+    ld      hl,(HEX_BaseAddress)
+    add     hl,de   ; HL is now base address + offset. We can't do 16-bit math in DE. :(
+    ld      de,hl
+
+    ld      hl,HEX_RecordData
     ld      a,(HEX_BytesInRecord)
     ld      c,a
     ld      b,0
@@ -140,6 +153,7 @@ HEX_GetChecksum:
 #data DATA
 HEX_GotStartCode:   .db 0   ; Did we get the start code?
 HEX_BytesInRecord:  .db 0   ; How many bytes does this record contain?
+HEX_BaseAddress:    .dw 0   ; Base address to write to. The record's offset is added to it.
 
 ; The record itself.
 HEX_Address:        .dw 0   ; WORD  - Destination address, always big-endian.

@@ -2,7 +2,7 @@
 
 #include "bios.inc"
 
-#code 	CODE,0x9000,0x1000
+#code 	CODE,0x8400,0x1000
 
 START:
     ld		de,HelloWorld
@@ -11,4 +11,4 @@ START:
     ret
 
 HelloWorld:
-	.ascii	"Uploaded HEX works!",13,10,0
+	.ascii	"Hi!",13,10,0,1

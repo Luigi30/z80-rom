@@ -1,5 +1,11 @@
 #target rom
 
+; Memory map for Procyon/80 and RC2014 64K
+;
+;	$0000-$7FFF - ROM region - currently uses $0000-$1FFF
+;	$8000-$8FFF - Kernel private RAM
+;	$9000-$FFFF - Transient Program Area (load programs here)
+
 #include "bios.inc"
 
 	;; SIO equates

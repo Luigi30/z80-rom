@@ -1,41 +1,28 @@
-              	; --------------------------------------
-              	; zasm: assemble "hextest.asm"
-              	; date: 2020-02-05 01:39:34
-              	; --------------------------------------
+#target bin
+
+#include "bios.inc"
+B_CONOUT        = 0
+B_STROUT        = 1
+B_CONIN         = 2
+B_CONSTAT       = 3
+B_STRIN         = 4
+
+DoBIOS	.macro
+		rst	$20
+		.endm
+
+#code 	CODE,0x8400,0x1000
+
+START:
+    ld		de,HelloWorld
+	ld		c,B_STROUT
+	DoBIOS
+		rst	$20
+    ret
+
+HelloWorld:
+	.ascii	"Hi!",13,10,0,1
 
 
-              	#target bin
-              	
-              	#include "bios.inc"
-0000:         	B_CONOUT        = 0
-0001:         	B_STROUT        = 1
-0002:         	B_CONIN         = 2
-0003:         	B_CONSTAT       = 3
-0004:         	B_STRIN         = 4
-              	
-              	DoBIOS	.macro
-              			rst	$20
-              			.endm
-              	
-9000:         	#code 	CODE,0x9000,0x1000
-              	
-              	    .org $9000
-              	
-9000:         	START:
-9000: 110790  	    ld		de,HelloWorld
-9003: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-9005: E7      			rst	$20
-9006: C9      	    ret
-              	
-9007:         	HelloWorld:
-9007: 55706C6F		.ascii	"Uploaded HEX works!",13,10,0
-900B: 61646564	
-900F: 20484558	
-9013: 20776F72	
-9017: 6B73210D	
-901B: 0A00    	
-
-
-total time: 0.0277 sec.
+total time: 0.0278 sec.
 no errors

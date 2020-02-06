@@ -3,12 +3,12 @@
 ;;; Return the character in HL.
 rc2014_getc:
         push 	af
-waitch:	in 	a,(SIOA_C)
+waitch:	in 		a,(SIOA_C)
         bit 	0,a
-        jr 	z,waitch
-        in 	a,(SIOA_D)
-        ld 	h,0
-        ld 	l,a
+        jr 		z,waitch
+        in 		a,(SIOA_D)
+        ld 		h,0
+        ld 		l,a
         pop 	af
         ret
 
@@ -36,7 +36,7 @@ rc2014_pollc:
 ;;; ;;;;;;;;;;;;;
 rc2014_sio_TX:
 #local
-	push af
+		push af
 txbusy: in a,($80)          ; read serial status
         bit 2,a             ; check status bit 2
         jr z, txbusy        ; loop if zero (serial is busy)

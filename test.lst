@@ -1,6 +1,6 @@
               	; --------------------------------------
               	; zasm: assemble "test.asm"
-              	; date: 2020-02-05 01:43:52
+              	; date: 2020-02-06 02:37:38
               	; --------------------------------------
 
 
@@ -103,12 +103,12 @@
               	;;; Return the character in HL.
 020B:         	rc2014_getc:
 020B: F5      	        push 	af
-020C: DB80    	waitch:	in 	a,(SIOA_C)
+020C: DB80    	waitch:	in 		a,(SIOA_C)
 020E: CB47    	        bit 	0,a
-0210: 28FA    	        jr 	z,waitch
-0212: DB81    	        in 	a,(SIOA_D)
-0214: 2600    	        ld 	h,0
-0216: 6F      	        ld 	l,a
+0210: 28FA    	        jr 		z,waitch
+0212: DB81    	        in 		a,(SIOA_D)
+0214: 2600    	        ld 		h,0
+0216: 6F      	        ld 		l,a
 0217: F1      	        pop 	af
 0218: C9      	        ret
               	
@@ -136,7 +136,7 @@
               	;;; ;;;;;;;;;;;;;
 0226:         	rc2014_sio_TX:
               	#local
-0226: F5      		push af
+0226: F5      			push af
 0227: DB80    	txbusy: in a,($80)          ; read serial status
 0229: CB57    	        bit 2,a             ; check status bit 2
 022B: 28FA    	        jr z, txbusy        ; loop if zero (serial is busy)
@@ -429,7 +429,7 @@
 0381: E7      			rst	$20
               	
 0382: CD0606  		call	ClearInputBuffer
-0385: 114680  		ld		de,buffer_base
+0385: 114880  		ld		de,buffer_base
 0388: 0E04    		ld		c,B_STRIN
               		DoBIOS
 038A: E7      			rst	$20
@@ -439,28 +439,28 @@
 0390: E7      			rst	$20
               	
               		; Take the first two bytes of buffer_Input and put them in the command register.
-0391: ED5B4880		ld		de,(buffer_Input)
-0395: ED537381		ld		(MON_Command),de
+0391: ED5B4A80		ld		de,(buffer_Input)
+0395: ED537581		ld		(MON_Command),de
               	
 0399:         	CheckCmdLength:
               		; Assume argument starts at buffer_Input+3
 0399: 3E03    		ld		a,3
-039B: 327781  		ld		(MON_ArgStartsAt),a
+039B: 327981  		ld		(MON_ArgStartsAt),a
               	
               		; Is the second byte of the command register 0x20? 
               		; If so, the argument starts at buffer_Input+2.
-039E: 3A7481  		ld		a,(MON_Command+1)
+039E: 3A7681  		ld		a,(MON_Command+1)
 03A1: FE20    		cp		$20
 03A3: 2005    		jr		nz,GotCmdLength
 03A5: 3E02    		ld		a,2
-03A7: 327781  		ld		(MON_ArgStartsAt),a
+03A7: 327981  		ld		(MON_ArgStartsAt),a
               	
 03AA:         	GotCmdLength:
 03AA: 060A    		ld		b,10
 03AC: CDCF05  		call	GetArgument
 03AF: CD6C05  		call	CmdDebugOutput
               	
-03B2: CD0E08  		call	Monitor_InterpretCommand
+03B2: CD2908  		call	Monitor_InterpretCommand
               	
               	; Loop...
 03B5:         	InputLoopEnd:
@@ -479,8 +479,8 @@
 03C4:         	ConvertStringToHex8:
               	; Convert the string in StringToHex_Source to a 8-bit hex value.
               	#local
-03C4: DD214781		ld		ix,StringToHex_Source
-03C8: FD215781		ld		iy,StringToHex_Dest
+03C4: DD214981		ld		ix,StringToHex_Source
+03C8: FD215981		ld		iy,StringToHex_Dest
               	
 03CC:         	DoConversion:
 03CC:         	Digit0:
@@ -534,8 +534,8 @@
 040D:         	ConvertStringToHex16:
               	; Convert the string in StringToHex_Source to a 16-bit hex value.
               	#local
-040D: DD214781		ld		ix,StringToHex_Source
-0411: FD215781		ld		iy,StringToHex_Dest
+040D: DD214981		ld		ix,StringToHex_Source
+0411: FD215981		ld		iy,StringToHex_Dest
               	
               		; Right-justify the value and add leading zeroes.
 0415:         	JustifyLoop:
@@ -653,8 +653,8 @@
               	;;;;;;;;
 04C6:         	ConvertHex16ToString:
               		; Convert the value in HexToString_Source to ASCII characters.
-04C6: DD215F81		ld		ix,HexToString_Source
-04CA: FD216381		ld		iy,HexToString_Dest
+04C6: DD216181		ld		ix,HexToString_Source
+04CA: FD216581		ld		iy,HexToString_Dest
               	
 04CE: 210000  		ld		hl,0
 04D1: FD7500  		ld		(iy+0),hl
@@ -715,8 +715,8 @@
 052B:         	ConvertHex8ToString:
               		; Convert the value in HexToString_Source to ASCII characters.
               		; A
-052B: FD216381		ld		iy,HexToString_Dest
-052F: DD215F81		ld		ix,HexToString_Source
+052B: FD216581		ld		iy,HexToString_Dest
+052F: DD216181		ld		ix,HexToString_Source
               	
 0533: 210000  		ld		hl,0
 0536: FD7500  		ld		(iy+0),hl
@@ -756,7 +756,7 @@
 056F: 0E01    		ld		c,B_STROUT
               		DoBIOS
 0571: E7      			rst	$20
-0572: DD2A7381		ld		ix,(MON_Command)
+0572: DD2A7581		ld		ix,(MON_Command)
 0576: DD5D    		ld		e,ixl
 0578: 0E00    		ld		c,B_CONOUT
               		DoBIOS
@@ -836,10 +836,10 @@
               		; Copy from buffer_Input+MON_ArgStartsAt into the argument buffers.
               		; Max 4 space-delimited arguments.
 05DB: 110088  		ld		de,MON_Argument1	; <-- MUST BE PAGE ALIGNED FOR POINTER MATH TO WORK!
-05DE: 214880  		ld		hl,buffer_Input
+05DE: 214A80  		ld		hl,buffer_Input
 05E1: DD210088		ld		ix,MON_Argument1
               	
-05E5: 3A7781  		ld		a,(MON_ArgStartsAt)
+05E5: 3A7981  		ld		a,(MON_ArgStartsAt)
 05E8: 4F      		ld		c,a
 05E9: 0600    		ld		b,0		; BC is now ArgStartsAt
 05EB: 09      		add		hl,bc	; And HL is now the beginning of the arguments.
@@ -877,7 +877,7 @@
               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 0606:         	ClearInputBuffer:
 0606: 3E00    		ld		a,0
-0608: 214880  		ld		hl,buffer_Input
+0608: 214A80  		ld		hl,buffer_Input
 060B:         	1$:
 060B: 3600    		ld		(hl),0
 060D: 23      		inc		hl
@@ -893,33 +893,33 @@
               	    
               	    ; Beginning address
 0614: 2A0088  		ld		hl,(MON_Argument1+0)
-0617: 224781  		ld		(StringToHex_Source+0),hl
+0617: 224981  		ld		(StringToHex_Source+0),hl
 061A: 2A0288  		ld		hl,(MON_Argument1+2)
-061D: 224981  		ld		(StringToHex_Source+2),hl
+061D: 224B81  		ld		(StringToHex_Source+2),hl
               	
 0620: CD0D04  		call	ConvertStringToHex16
-0623: 2A5781  		ld		hl,(StringToHex_Dest)
-0626: 226781  		ld		(MemoryOutputStartAddr),hl
+0623: 2A5981  		ld		hl,(StringToHex_Dest)
+0626: 226981  		ld		(MemoryOutputStartAddr),hl
               	
               		; Ending address
 0629: 2A1088  		ld		hl,(MON_Argument2)
-062C: 224781  		ld		(StringToHex_Source+0),hl
+062C: 224981  		ld		(StringToHex_Source+0),hl
 062F: 2A1288  		ld		hl,(MON_Argument2+2)
-0632: 224981  		ld		(StringToHex_Source+2),hl
+0632: 224B81  		ld		(StringToHex_Source+2),hl
 0635: CD0D04  		call	ConvertStringToHex16
               	
-0638: 2A5781  		ld		hl,(StringToHex_Dest)
-063B: 226B81  		ld		(MemoryOutputEndAddr),hl
+0638: 2A5981  		ld		hl,(StringToHex_Dest)
+063B: 226D81  		ld		(MemoryOutputEndAddr),hl
 063E: CD8306  		call	Monitor_DoMemoryOutput
               	
 0641: C9      		ret
               	
 0642:         	Monitor_DoMemoryLabel:
               		; Formatting: start address
-0642: 2A6981  		ld		hl,(MemoryOutputCurAddr)
-0645: 225F81  		ld		(HexToString_Source),hl
+0642: 2A6B81  		ld		hl,(MemoryOutputCurAddr)
+0645: 226181  		ld		(HexToString_Source),hl
 0648: CDC604  		call	ConvertHex16ToString
-064B: 116381  		ld		de,HexToString_Dest
+064B: 116581  		ld		de,HexToString_Dest
 064E: 0E01    		ld		c,B_STROUT
               		DoBIOS
 0650: E7      			rst	$20
@@ -940,17 +940,17 @@
 065C: C5      		push	bc
               	
 065D: DD7E00  		ld		a,(ix)						; A has a memory byte
-0660: 325F81  		ld		(HexToString_Source),a		
+0660: 326181  		ld		(HexToString_Source),a		
 0663: DDE5    		push	ix
 0665: CD2B05  		call	ConvertHex8ToString			; Convert it to ASCII
               	
               		; Print two characters of output and a space
-0668: 3A6381  		ld		a,(HexToString_Dest)
+0668: 3A6581  		ld		a,(HexToString_Dest)
 066B: 5F      		ld		e,a
 066C: 0E00    		ld		c,B_CONOUT
               		DoBIOS								
 066E: E7      			rst	$20
-066F: 3A6481  		ld		a,(HexToString_Dest+1)
+066F: 3A6681  		ld		a,(HexToString_Dest+1)
 0672: 5F      		ld		e,a
 0673: 0E00    		ld		c,B_CONOUT
               		DoBIOS
@@ -971,21 +971,21 @@
               	
 0683:         	Monitor_DoMemoryOutput:
               	#local
-0683: 2A6781  		ld		hl,(MemoryOutputStartAddr)
-0686: 226981  		ld		(MemoryOutputCurAddr),hl
+0683: 2A6981  		ld		hl,(MemoryOutputStartAddr)
+0686: 226B81  		ld		(MemoryOutputCurAddr),hl
               	
 0689: CD4206  		call	Monitor_DoMemoryLabel
               	
               		; Output 16 memory bytes
-068C: 2A6B81  		ld		hl,(MemoryOutputEndAddr)
-068F: ED4B6781		ld		bc,(MemoryOutputStartAddr)
+068C: 2A6D81  		ld		hl,(MemoryOutputEndAddr)
+068F: ED4B6981		ld		bc,(MemoryOutputStartAddr)
 0693: 37      		scf
 0694: 3F      		ccf		; Clear carry flag to get the proper subtraction result.
 0695: 23      		inc		hl	
 0696: ED42    		sbc		hl,bc
-0698: 226D81  		ld		(MemoryOutputBytesLeft),hl
+0698: 226F81  		ld		(MemoryOutputBytesLeft),hl
               	
-069B: DD2A6781		ld		ix,(MemoryOutputStartAddr)
+069B: DD2A6981		ld		ix,(MemoryOutputStartAddr)
 069F: 0610    		ld		b,16
 06A1: CD5C06  		call	Monitor_PrintBytes
               	
@@ -995,21 +995,21 @@
               		DoBIOS
 06A9: E7      			rst	$20
               	
-06AA: 2A6D81  		ld		hl,(MemoryOutputBytesLeft)
+06AA: 2A6F81  		ld		hl,(MemoryOutputBytesLeft)
 06AD: 37      		scf
 06AE: 011000  		ld		bc,16
 06B1: ED42    		sbc		hl,bc	; Subtract the 16 bytes we already read.
 06B3: FAD206  		jp		m,Done	; End if we're out of memory to write.
-06B6: 226D81  		ld		(MemoryOutputBytesLeft),hl
+06B6: 226F81  		ld		(MemoryOutputBytesLeft),hl
               	
 06B9: 011000  		ld		bc,16
-06BC: 2A6981  		ld		hl,(MemoryOutputCurAddr)
+06BC: 2A6B81  		ld		hl,(MemoryOutputCurAddr)
 06BF: 09      		add		hl,bc						; Advance start pointer
-06C0: 226981  		ld		(MemoryOutputCurAddr),hl	
+06C0: 226B81  		ld		(MemoryOutputCurAddr),hl	
 06C3: CD4206  		call	Monitor_DoMemoryLabel
               	
 06C6: 0610    		ld		b,16						; Another 16 bytes
-06C8: DD2A6981		ld		ix,(MemoryOutputCurAddr)
+06C8: DD2A6B81		ld		ix,(MemoryOutputCurAddr)
 06CC: CD5C06  		call	Monitor_PrintBytes
 06CF: C3A406  		jp		EndMemoryLine
               	
@@ -1022,12 +1022,12 @@
 06D3:         	Monitor_CMD_Go:
               	    ; Beginning address
 06D3: 2A0088  		ld		hl,(MON_Argument1+0)
-06D6: 224781  		ld		(StringToHex_Source+0),hl
+06D6: 224981  		ld		(StringToHex_Source+0),hl
 06D9: 2A0288  		ld		hl,(MON_Argument1+2)
-06DC: 224981  		ld		(StringToHex_Source+2),hl
+06DC: 224B81  		ld		(StringToHex_Source+2),hl
               	
 06DF: CD0D04  		call	ConvertStringToHex16
-06E2: 2A5781  		ld		hl,(StringToHex_Dest)
+06E2: 2A5981  		ld		hl,(StringToHex_Dest)
 06E5: E9      	    jp      (hl)
               	
 06E6: C9      		ret
@@ -1037,203 +1037,217 @@
               	#local
 06E7:         	Monitor_CMD_Upload::
               	    ; Each HEX record contains the destination address.
-06E7: 119107  		ld		de,STR_HEX_ReadyToReceive
-06EA: 0E01    		ld		c,B_STROUT
+06E7: 2A0088  	    ld		hl,(MON_Argument1+0)
+06EA: 224981  		ld		(StringToHex_Source+0),hl
+06ED: 2A0288  		ld		hl,(MON_Argument1+2)
+06F0: 224B81  		ld		(StringToHex_Source+2),hl
+              	
+06F3: CD0D04  		call	ConvertStringToHex16
+06F6: 2A5981  		ld		hl,(StringToHex_Dest)
+06F9: 220280  	    ld      (HEX_BaseAddress),hl
+              	
+06FC: 11AC07  		ld		de,STR_HEX_ReadyToReceive
+06FF: 0E01    		ld		c,B_STROUT
               		DoBIOS
-06EC: E7      			rst	$20
+0701: E7      			rst	$20
               	
               	    ; Receive one record.
-06ED: CD2807  	    call    HEX_ReceiveRecord
+0702: CD4307  	    call    HEX_ReceiveRecord
               	
               	    ; Is it an EOF?
-06F0: 3A0480  	    ld      a,(HEX_RecordType)
-06F3: FE01    	    cp      1    
-06F5: 2805    	    jr      z,Done
+0705: 3A0680  	    ld      a,(HEX_RecordType)
+0708: FE01    	    cp      1    
+070A: 2805    	    jr      z,Done
               	
               	    ; Copy it to its destination.
-06F7: CDFD06  	    call    HEX_CopyRecord
-06FA: 18EB    	    jr      Monitor_CMD_Upload
+070C: CD1207  	    call    HEX_CopyRecord
+070F: 18D6    	    jr      Monitor_CMD_Upload
               	
-06FC:         	Done:
-06FC: C9      		ret
+0711:         	Done:
+0711: C9      		ret
               	#endlocal
               	
-06FD:         	HEX_CopyRecord:
-06FD: 210580  	    ld      hl,HEX_RecordData
-0700: ED5B0280	    ld      de,(HEX_Address)
-0704: 3A0180  	    ld      a,(HEX_BytesInRecord)
-0707: 4F      	    ld      c,a
-0708: 0600    	    ld      b,0
-070A: EDB0    	    ldir
-070C: C9      	    ret
+0712:         	HEX_CopyRecord:
+0712: ED5B0480	    ld      de,(HEX_Address)
+0716: 2A0280  	    ld      hl,(HEX_BaseAddress)
+0719: 19      	    add     hl,de   ; HL is now base address + offset. We can't do 16-bit math in DE. :(
+071A: 545D    	    ld      de,hl
               	
-070D:         	HEX_GetASCIIByteValue:
-              	    ; Get two ASCII characters, convert them to a byte value, and return it in A.
-070D: 0E02    	    ld		c,B_CONIN
-              	    DoBIOS
-070F: E7      			rst	$20
-0710: 324781  		ld		(StringToHex_Source+0),a
-0713: 0E02    	    ld		c,B_CONIN
-              	    DoBIOS
-0715: E7      			rst	$20
-0716: 324881  		ld		(StringToHex_Source+1),a
-              	
-0719: CDC403  		call	ConvertStringToHex8
-071C: 3A5781  		ld		a,(StringToHex_Dest)
-071F: C9      	    ret
-              	
-0720:         	HEX_AwaitStartCode:
-              	    ; Listen for the start code.
-0720: 0E02    	    ld		c,B_CONIN
-              	    DoBIOS
-0722: E7      			rst	$20
-              	
-0723: FE3A    	    cp      ":"
-0725: 20F9    	    jr      nz,HEX_AwaitStartCode
-              	
-              	    ; Got the start code of a HEX.
+071C: 210780  	    ld      hl,HEX_RecordData
+071F: 3A0180  	    ld      a,(HEX_BytesInRecord)
+0722: 4F      	    ld      c,a
+0723: 0600    	    ld      b,0
+0725: EDB0    	    ldir
 0727: C9      	    ret
               	
-0728:         	HEX_ReceiveRecord:
+0728:         	HEX_GetASCIIByteValue:
+              	    ; Get two ASCII characters, convert them to a byte value, and return it in A.
+0728: 0E02    	    ld		c,B_CONIN
+              	    DoBIOS
+072A: E7      			rst	$20
+072B: 324981  		ld		(StringToHex_Source+0),a
+072E: 0E02    	    ld		c,B_CONIN
+              	    DoBIOS
+0730: E7      			rst	$20
+0731: 324A81  		ld		(StringToHex_Source+1),a
+              	
+0734: CDC403  		call	ConvertStringToHex8
+0737: 3A5981  		ld		a,(StringToHex_Dest)
+073A: C9      	    ret
+              	
+073B:         	HEX_AwaitStartCode:
+              	    ; Listen for the start code.
+073B: 0E02    	    ld		c,B_CONIN
+              	    DoBIOS
+073D: E7      			rst	$20
+              	
+073E: FE3A    	    cp      ":"
+0740: 20F9    	    jr      nz,HEX_AwaitStartCode
+              	
+              	    ; Got the start code of a HEX.
+0742: C9      	    ret
+              	
+0743:         	HEX_ReceiveRecord:
               	    ; Receive a HEX record.
               	
               	    ; Set up our variables.
-0728: 3E00    	    ld      a,0
-072A: 320080  	    ld      (HEX_GotStartCode),a
-072D: 320180  	    ld      (HEX_BytesInRecord),a
+0743: 3E00    	    ld      a,0
+0745: 320080  	    ld      (HEX_GotStartCode),a
+0748: 320180  	    ld      (HEX_BytesInRecord),a
               	
-0730: CD2007  	    call    HEX_AwaitStartCode
-0733: 210080  	    ld      hl,HEX_GotStartCode
-0736: 34      	    inc     (hl)
+074B: CD3B07  	    call    HEX_AwaitStartCode
+074E: 210080  	    ld      hl,HEX_GotStartCode
+0751: 34      	    inc     (hl)
               	
-0737: 11A907  	    ld		de,STR_HEX_Debug_GotStart
-073A: 0E01    		ld		c,B_STROUT
+0752: 11C407  	    ld		de,STR_HEX_Debug_GotStart
+0755: 0E01    		ld		c,B_STROUT
               		DoBIOS
-073C: E7      			rst	$20
+0757: E7      			rst	$20
               	
               	    ; Next up is the number of bytes contained in this record.
-073D: CD0D07  	    call    HEX_GetASCIIByteValue
-0740: 320180  	    ld      (HEX_BytesInRecord),a
+0758: CD2807  	    call    HEX_GetASCIIByteValue
+075B: 320180  	    ld      (HEX_BytesInRecord),a
               	
-0743: 11BA07  		ld		de,STR_HEX_Debug_GotLength
-0746: 0E01    		ld		c,B_STROUT
+075E: 11D507  		ld		de,STR_HEX_Debug_GotLength
+0761: 0E01    		ld		c,B_STROUT
               		DoBIOS
-0748: E7      			rst	$20
+0763: E7      			rst	$20
               	
               	    ; Then a big-endian address.
-0749: CD0D07  	    call    HEX_GetASCIIByteValue
-074C: 67      	    ld      h,a
-074D: E5      	    push    hl
-074E: CD0D07  	    call    HEX_GetASCIIByteValue
-0751: E1      	    pop     hl
-0752: 6F      	    ld      l,a
-0753: 220280  	    ld      (HEX_Address),hl
+0764: CD2807  	    call    HEX_GetASCIIByteValue
+0767: 67      	    ld      h,a
+0768: E5      	    push    hl
+0769: CD2807  	    call    HEX_GetASCIIByteValue
+076C: E1      	    pop     hl
+076D: 6F      	    ld      l,a
+076E: 220480  	    ld      (HEX_Address),hl
               	
-0756: 11CB07  	    ld		de,STR_HEX_Debug_GotAddr
-0759: 0E01    		ld		c,B_STROUT
+0771: 11E607  	    ld		de,STR_HEX_Debug_GotAddr
+0774: 0E01    		ld		c,B_STROUT
               		DoBIOS
-075B: E7      			rst	$20
+0776: E7      			rst	$20
               	
               	    ; Then the record type.
-075C: CD0D07  	    call    HEX_GetASCIIByteValue
-075F: 320480  	    ld      (HEX_RecordType),a
+0777: CD2807  	    call    HEX_GetASCIIByteValue
+077A: 320680  	    ld      (HEX_RecordType),a
               	
-0762: 11DD07  		ld		de,STR_HEX_Debug_GotType
-0765: 0E01    		ld		c,B_STROUT
+077D: 11F807  		ld		de,STR_HEX_Debug_GotType
+0780: 0E01    		ld		c,B_STROUT
               		DoBIOS
-0767: E7      			rst	$20
+0782: E7      			rst	$20
               	
               	    ; Then the record data itself.
-0768: 3A0180  	    ld      a,(HEX_BytesInRecord)
-076B: FE00    	    cp      0
-076D: 2815    	    jr      z,HEX_GetChecksum
+0783: 3A0180  	    ld      a,(HEX_BytesInRecord)
+0786: FE00    	    cp      0
+0788: 2815    	    jr      z,HEX_GetChecksum
               	
-076F: 47      	    ld      b,a
-0770: 210580  	    ld      hl,HEX_RecordData
+078A: 47      	    ld      b,a
+078B: 210780  	    ld      hl,HEX_RecordData
               	
-0773:         	ReceiveLoop:
-0773: C5      	    push    bc
-0774: E5      	    push    hl
+078E:         	ReceiveLoop:
+078E: C5      	    push    bc
+078F: E5      	    push    hl
               	
-0775: CD0D07  	    call    HEX_GetASCIIByteValue
+0790: CD2807  	    call    HEX_GetASCIIByteValue
               	    
-0778: E1      	    pop     hl 
-0779: C1      	    pop     bc
+0793: E1      	    pop     hl 
+0794: C1      	    pop     bc
               	
-077A: 77      	    ld      (hl),a
-077B: 23      	    inc     hl          ; Advance receive buffer
-077C: 10F5    	    djnz    ReceiveLoop ; Loop until receive count is 0
+0795: 77      	    ld      (hl),a
+0796: 23      	    inc     hl          ; Advance receive buffer
+0797: 10F5    	    djnz    ReceiveLoop ; Loop until receive count is 0
               	
-077E: 11EC07  		ld		de,STR_HEX_Debug_GotData
-0781: 0E01    		ld		c,B_STROUT
+0799: 110708  		ld		de,STR_HEX_Debug_GotData
+079C: 0E01    		ld		c,B_STROUT
               		DoBIOS
-0783: E7      			rst	$20
+079E: E7      			rst	$20
               	
-0784:         	HEX_GetChecksum:
+079F:         	HEX_GetChecksum:
               	    ; And finally the checksum.
-0784: CD0D07  	    call    HEX_GetASCIIByteValue
-0787: 324580  	    ld      (HEX_Checksum),a
+079F: CD2807  	    call    HEX_GetASCIIByteValue
+07A2: 324780  	    ld      (HEX_Checksum),a
               	
-078A: 11FB07  		ld		de,STR_HEX_Debug_GotChecksum
-078D: 0E01    		ld		c,B_STROUT
+07A5: 111608  		ld		de,STR_HEX_Debug_GotChecksum
+07A8: 0E01    		ld		c,B_STROUT
               		DoBIOS
-078F: E7      			rst	$20
+07AA: E7      			rst	$20
               	
-0790: C9      	    ret
+07AB: C9      	    ret
               	
               	#data DATA
 8000: 00      	HEX_GotStartCode:   .db 0   ; Did we get the start code?
 8001: 00      	HEX_BytesInRecord:  .db 0   ; How many bytes does this record contain?
+8002: 0000    	HEX_BaseAddress:    .dw 0   ; Base address to write to. The record's offset is added to it.
               	
               	; The record itself.
-8002: 0000    	HEX_Address:        .dw 0   ; WORD  - Destination address, always big-endian.
-8004: 00      	HEX_RecordType:     .db 0   ; BYTE  - Record type.
-8005: 00000000	HEX_RecordData:     .ds 64  ; ARRAY - The record's contents.
-8009: 00...   	HEX_RecordData:     .ds 64  ; ARRAY - The record's contents.
-8045: 00      	HEX_Checksum:       .db 0   ; BYTE  - Checksum of the record.
+8004: 0000    	HEX_Address:        .dw 0   ; WORD  - Destination address, always big-endian.
+8006: 00      	HEX_RecordType:     .db 0   ; BYTE  - Record type.
+8007: 00000000	HEX_RecordData:     .ds 64  ; ARRAY - The record's contents.
+800B: 00...   	HEX_RecordData:     .ds 64  ; ARRAY - The record's contents.
+8047: 00      	HEX_Checksum:       .db 0   ; BYTE  - Checksum of the record.
               	
               	#code _CODE
-0791: 52656164	STR_HEX_ReadyToReceive: .ascii "Ready to receive HEX.",13,10,0
-0795: 7920746F	
-0799: 20726563	
-079D: 65697665	
-07A1: 20484558	
-07A5: 2E0D0A00	
-07A9: 476F7420	STR_HEX_Debug_GotStart: .ascii "Got start code",13,10,0
-07AD: 73746172	
-07B1: 7420636F	
-07B5: 64650D0A	
-07B9: 00      	
-07BA: 476F7420	STR_HEX_Debug_GotLength: .ascii "Got rec length",13,10,0
-07BE: 72656320	
-07C2: 6C656E67	
-07C6: 74680D0A	
-07CA: 00      	
-07CB: 476F7420	STR_HEX_Debug_GotAddr: .ascii "Got rec address",13,10,0
-07CF: 72656320	
-07D3: 61646472	
-07D7: 6573730D	
-07DB: 0A00    	
-07DD: 476F7420	STR_HEX_Debug_GotType: .ascii "Got rec type",13,10,0
-07E1: 72656320	
-07E5: 74797065	
-07E9: 0D0A00  	
-07EC: 476F7420	STR_HEX_Debug_GotData: .ascii "Got rec data",13,10,0
-07F0: 72656320	
-07F4: 64617461	
-07F8: 0D0A00  	
-07FB: 476F7420	STR_HEX_Debug_GotChecksum: .ascii "Got rec checksum",13,10,0
-07FF: 72656320	
-0803: 63686563	
-0807: 6B73756D	
-080B: 0D0A00  	
+07AC: 52656164	STR_HEX_ReadyToReceive: .ascii "Ready to receive HEX.",13,10,0
+07B0: 7920746F	
+07B4: 20726563	
+07B8: 65697665	
+07BC: 20484558	
+07C0: 2E0D0A00	
+07C4: 476F7420	STR_HEX_Debug_GotStart: .ascii "Got start code",13,10,0
+07C8: 73746172	
+07CC: 7420636F	
+07D0: 64650D0A	
+07D4: 00      	
+07D5: 476F7420	STR_HEX_Debug_GotLength: .ascii "Got rec length",13,10,0
+07D9: 72656320	
+07DD: 6C656E67	
+07E1: 74680D0A	
+07E5: 00      	
+07E6: 476F7420	STR_HEX_Debug_GotAddr: .ascii "Got rec address",13,10,0
+07EA: 72656320	
+07EE: 61646472	
+07F2: 6573730D	
+07F6: 0A00    	
+07F8: 476F7420	STR_HEX_Debug_GotType: .ascii "Got rec type",13,10,0
+07FC: 72656320	
+0800: 74797065	
+0804: 0D0A00  	
+0807: 476F7420	STR_HEX_Debug_GotData: .ascii "Got rec data",13,10,0
+080B: 72656320	
+080F: 64617461	
+0813: 0D0A00  	
+0816: 476F7420	STR_HEX_Debug_GotChecksum: .ascii "Got rec checksum",13,10,0
+081A: 72656320	
+081E: 63686563	
+0822: 6B73756D	
+0826: 0D0A00  	
               	
               	#code	_CODE
               	
               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-080E:         	Monitor_InterpretCommand:
+0829:         	Monitor_InterpretCommand:
               		; The Z80 version of a switch statement?
-080E: 3A7381  		ld		a,(MON_Command)
+0829: 3A7581  		ld		a,(MON_Command)
               	
               		; JP to the command that matches. 
               		; If no command matches, fall through to an error.
@@ -1241,62 +1255,62 @@
               		; i.e. the command loop.
               	
               		; Command: Memory
-0811: FE4D    		cp		"M"
-0813: CA1406  		jp		z,Monitor_CMD_Memory
+082C: FE4D    		cp		"M"
+082E: CA1406  		jp		z,Monitor_CMD_Memory
               	
-0816: FE47    		cp		"G"
-0818: CAD306  		jp		z,Monitor_CMD_Go
+0831: FE47    		cp		"G"
+0833: CAD306  		jp		z,Monitor_CMD_Go
               	
-081B: FE55    		cp		"U"
-081D: CAE706  		jp		z,Monitor_CMD_Upload
+0836: FE55    		cp		"U"
+0838: CAE706  		jp		z,Monitor_CMD_Upload
               	
-0820: 115D03  		ld		de,strCmdUnknown
-0823: 0E01    		ld		c,B_STROUT
+083B: 115D03  		ld		de,strCmdUnknown
+083E: 0E01    		ld		c,B_STROUT
               		DoBIOS
-0825: E7      			rst	$20
-0826: 110C03  		ld		de,strCRLF
-0829: 0E01    		ld		c,B_STROUT
+0840: E7      			rst	$20
+0841: 110C03  		ld		de,strCRLF
+0844: 0E01    		ld		c,B_STROUT
               		DoBIOS
-082B: E7      			rst	$20
+0846: E7      			rst	$20
               	
-082C: C9      		ret
+0847: C9      		ret
               	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
               	
               	#data	DATA	; Data section in RAM. Assume 32K of RAM on an RC2014.
               	
-8046:         	buffer_base:
-8046: 00      	buffer_len:				.db 0
-8047: 00      	buffer_inputsize:		.db 0
-8048: 00000000	buffer_Input:			.ds	255	; 255 bytes of input storage
-804C: 00...   	buffer_Input:			.ds	255	; 255 bytes of input storage
+8048:         	buffer_base:
+8048: 00      	buffer_len:				.db 0
+8049: 00      	buffer_inputsize:		.db 0
+804A: 00000000	buffer_Input:			.ds	255	; 255 bytes of input storage
+804E: 00...   	buffer_Input:			.ds	255	; 255 bytes of input storage
               	
               	;;;
-8147: 00000000	StringToHex_Source:		.ds 16
-814B: 00...   	StringToHex_Source:		.ds 16
-8157: 00000000	StringToHex_Dest:		.ds 8
-815B: 00000000	StringToHex_Dest:		.ds 8
+8149: 00000000	StringToHex_Source:		.ds 16
+814D: 00...   	StringToHex_Source:		.ds 16
+8159: 00000000	StringToHex_Dest:		.ds 8
+815D: 00000000	StringToHex_Dest:		.ds 8
               	
-815F: 00000000	HexToString_Source:		.ds	4
-8163: 00000000	HexToString_Dest:		.ds 4
-              	
-              	;;;
-8167: 0000    	MemoryOutputStartAddr:	.dw 0
-8169: 0000    	MemoryOutputCurAddr:	.dw 0
-816B: 0000    	MemoryOutputEndAddr:	.dw 0
-816D: 0000    	MemoryOutputBytesLeft:	.dw 0
+8161: 00000000	HexToString_Source:		.ds	4
+8165: 00000000	HexToString_Dest:		.ds 4
               	
               	;;;
-816F: 0000    	HEX_DestinationAddr:	.dw 0
+8169: 0000    	MemoryOutputStartAddr:	.dw 0
+816B: 0000    	MemoryOutputCurAddr:	.dw 0
+816D: 0000    	MemoryOutputEndAddr:	.dw 0
+816F: 0000    	MemoryOutputBytesLeft:	.dw 0
+              	
+              	;;;
+8171: 0000    	HEX_DestinationAddr:	.dw 0
               	
               	;;;;;;;;;;;;;;;;;;;
               	; ROM monitor data stuff
-8171: 0000    	MON_PreviousCmd:	.db		0,0
-8173: 0000    	MON_Command:		.db		0,0
+8173: 0000    	MON_PreviousCmd:	.db		0,0
+8175: 0000    	MON_Command:		.db		0,0
               	
-8175: 0000    	MON_ArgDestPtr:		.dw		0
-8177: 00      	MON_ArgStartsAt: 	.db		0
-8178: 00000000		.org $8800			; ensure these are page-aligned
-817C: 00...   		.org $8800			; ensure these are page-aligned
+8177: 0000    	MON_ArgDestPtr:		.dw		0
+8179: 00      	MON_ArgStartsAt: 	.db		0
+817A: 00000000		.org $8800			; ensure these are page-aligned
+817E: 00...   		.org $8800			; ensure these are page-aligned
 8800: 00000000	MON_Argument1:		.ds		16
 8804: 00...   	MON_Argument1:		.ds		16
 8810: 00000000	MON_Argument2:		.ds		16
@@ -1309,5 +1323,5 @@
               	#end
 
 
-total time: 0.4695 sec.
+total time: 0.5154 sec.
 no errors
