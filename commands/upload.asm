@@ -1,17 +1,9 @@
 ; Monitor's U command
 ; Upload a HEX file somewhere in memory
-#local
-Monitor_CMD_Upload::
+Monitor_CMD_Upload:
     ; Each HEX record contains the destination address.
-    ld		hl,(MON_Argument1+0)
-	ld		(StringToHex_Source+0),hl
-	ld		hl,(MON_Argument1+2)
-	ld		(StringToHex_Source+2),hl
 
-	call	ConvertStringToHex16
-	ld		hl,(StringToHex_Dest)
-    ld      (HEX_BaseAddress),hl
-
+    ; Base address of an upload is 9000h.
 	ld		de,STR_HEX_ReadyToReceive
 	ld		c,B_STROUT
 	DoBIOS
@@ -22,22 +14,22 @@ Monitor_CMD_Upload::
     ; Is it an EOF?
     ld      a,(HEX_RecordType)
     cp      1    
-    jr      z,Done
+    jr      z,.Done
+    nop
 
     ; Copy it to its destination.
     call    HEX_CopyRecord
     jr      Monitor_CMD_Upload
 
-Done:
+.Done:
 	ret
-#endlocal
 
 HEX_CopyRecord:
-    ld      de,(HEX_Address)
-    ld      hl,(HEX_BaseAddress)
-    add     hl,de   ; HL is now base address + offset. We can't do 16-bit math in DE. :(
-    ld      de,hl
-
+    ld      hl,(HEX_Address)
+    ld      de,$9000
+    add     hl,de
+    ld      d,h
+    ld      e,l
     ld      hl,HEX_RecordData
     ld      a,(HEX_BytesInRecord)
     ld      c,a
@@ -150,22 +142,22 @@ HEX_GetChecksum:
 
     ret
 
-#data DATA
-HEX_GotStartCode:   .db 0   ; Did we get the start code?
-HEX_BytesInRecord:  .db 0   ; How many bytes does this record contain?
-HEX_BaseAddress:    .dw 0   ; Base address to write to. The record's offset is added to it.
+    PAGE 2
+HEX_GotStartCode:   db 0   ; Did we get the start code?
+HEX_BytesInRecord:  db 0   ; How many bytes does this record contain?
+HEX_BaseAddress:    dw 0   ; Base address to write to. The record's offset is added to it.
 
 ; The record itself.
-HEX_Address:        .dw 0   ; WORD  - Destination address, always big-endian.
-HEX_RecordType:     .db 0   ; BYTE  - Record type.
-HEX_RecordData:     .ds 64  ; ARRAY - The record's contents.
-HEX_Checksum:       .db 0   ; BYTE  - Checksum of the record.
+HEX_Address:        dw 0   ; WORD  - Destination address, always big-endian.
+HEX_RecordType:     db 0   ; BYTE  - Record type.
+HEX_Checksum:       db 0   ; BYTE  - Checksum of the record.
+HEX_RecordData:     ds 64  ; ARRAY - The record's contents.
 
-#code _CODE
-STR_HEX_ReadyToReceive: .ascii "Ready to receive HEX.",13,10,0
-STR_HEX_Debug_GotStart: .ascii "Got start code",13,10,0
-STR_HEX_Debug_GotLength: .ascii "Got rec length",13,10,0
-STR_HEX_Debug_GotAddr: .ascii "Got rec address",13,10,0
-STR_HEX_Debug_GotType: .ascii "Got rec type",13,10,0
-STR_HEX_Debug_GotData: .ascii "Got rec data",13,10,0
-STR_HEX_Debug_GotChecksum: .ascii "Got rec checksum",13,10,0
+    PAGE 1
+STR_HEX_ReadyToReceive:     db "Ready to receive HEX. Ensure 3ms delay per character.",13,10,0
+STR_HEX_Debug_GotStart:     db "Got start code",13,10,0
+STR_HEX_Debug_GotLength:    db "Got rec length",13,10,0
+STR_HEX_Debug_GotAddr:      db "Got rec address",13,10,0
+STR_HEX_Debug_GotType:      db "Got rec type",13,10,0
+STR_HEX_Debug_GotData:      db "Got rec data",13,10,0
+STR_HEX_Debug_GotChecksum:  db "Got rec checksum",13,10,0

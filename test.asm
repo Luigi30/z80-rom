@@ -1,24 +1,29 @@
-#target rom
-
 ; Memory map for Procyon/80 and RC2014 64K
 ;
 ;	$0000-$7FFF - ROM region - currently uses $0000-$1FFF
 ;	$8000-$8FFF - Kernel private RAM
 ;	$9000-$FFFF - Transient Program Area (load programs here)
 
-#include "bios.inc"
+	OUTPUT "out/test.rom"
+
+	DEFPAGE	0, 0000h, 0200h		; Boot vectors and stuff
+	DEFPAGE 1, 0200h, 0E00h	; Kernel code
+	DEFPAGE 2, 8000h, 1000h ; Kernel data
+
+include "bios.inc"
+
+include	"rc2014.asm"
+include	"strings.asm"
 
 	;; SIO equates
-SIOA_D	.EQU $81
-SIOA_C	.EQU $80
-SIOB_D	.EQU $83
-SIOB_C	.EQU $82
+SIOA_D	EQU $81
+SIOA_C	EQU $80
+SIOB_D	EQU $83
+SIOB_C	EQU $82
 	
-#data 	DATA,0x8000,0x8000
-
-#code	_BOOT,0h,200h		; Reset vector, RST vectors, NMI vectors
-
+		page 0
 	;;  see rc2014init.asm
+		org 0
 	
 RST00:	di			; interrupts off
 		jp	Start
@@ -77,19 +82,27 @@ RST38:	reti
 		nop
 	
 ;;; ;;;;;;;;;;;;;;;;
-
-#code	_CODE,0x200,0x1E00	; 8K page total
+	PAGE 1
+	org	200h
 
 Start:
 	ld		hl,$FFF9	; initialize stack
 	ld		sp,hl
 
+	; Clear $9000
+	ld		b,0
+	ld		de,$0000
+	ld		hl,$9000
+	ld		a,0
+ClearSRAM:
+	ld		(hl),a
+	inc		hl
+	inc		a
+	djnz	ClearSRAM	
+
 	di
 	call	rc2014_sio_init
 	jp		Greet
-
-#include 	"rc2014.asm"
-#include	"strings.asm"
 	
 Greet:
 	ld		de,HelloWorld
@@ -148,70 +161,67 @@ InputLoopEnd:
 
 ConvertStringToHex8:
 ; Convert the string in StringToHex_Source to a 8-bit hex value.
-#local
 	ld		ix,StringToHex_Source
 	ld		iy,StringToHex_Dest
 
-DoConversion:
-Digit0:
+.DoConversion:
+.Digit0:
 	; Less than $40? Subtract $30.
 	; More than $40? Subtract $40.
 	ld		a,(ix+0)
 	cp		$40
-	jp		m,Digit0_IsNumber
+	jp		m,.Digit0_IsNumber
 
-Digit0_IsAlpha:
+.Digit0_IsAlpha:
 	add		a,-$37
 	sla		a
 	sla		a
 	sla		a
 	sla		a
 	ld		(iy+0),a
-	jr		Digit1
+	jr		.Digit1
 
-Digit0_IsNumber:
+.Digit0_IsNumber:
 	add		a,-$30
 	sla		a
 	sla		a
 	sla		a
 	sla		a
 	ld		(iy+0),a
-	jr		Digit1
+	jr		.Digit1
 
-Digit1:
+.Digit1:
 	; Less than $40? Subtract $30.
 	; More than $40? Subtract $40.
 	ld		a,(ix+1)
 	cp		$40
-	jp		m,Digit1_IsNumber
+	jp		m,.Digit1_IsNumber
 
-Digit1_IsAlpha:
+.Digit1_IsAlpha:
 	add		a,-$37
 	or		(iy+0)
 	ld		(iy+0),a
-	jr		Done
+	jr		.Done
 
-Digit1_IsNumber:
+.Digit1_IsNumber:
 	add		a,-$30
 	or		(iy+0)
 	ld		(iy+0),a
 
-Done:
+.Done:
 	ret
-#endlocal
 
 ;;;;;;;;
 ConvertStringToHex16:
 ; Convert the string in StringToHex_Source to a 16-bit hex value.
-#local
 	ld		ix,StringToHex_Source
 	ld		iy,StringToHex_Dest
 
 	; Right-justify the value and add leading zeroes.
-JustifyLoop:
+.JustifyLoop:
 	ld		a,(ix+3)
 	cp		0
-	jr		nz,DoConversion
+	jr		nz,.DoConversion
 	ld		a,(ix+2)
 	ld		(ix+3),a
 	ld		a,(ix+1)
@@ -220,104 +230,103 @@ JustifyLoop:
 	ld		(ix+1),a
 	ld		a,$30		; ASCII 0
 	ld		(ix+0),a
-	jr		JustifyLoop
+	jr		.JustifyLoop
 
-DoConversion:
-Digit0:
+.DoConversion:
+.Digit0:
 	; Less than $40? Subtract $30.
 	; More than $40? Subtract $40.
 	ld		a,(ix+0)
 	cp		$40
-	jp		p,Digit0_IsAlpha
-	jp		m,Digit0_IsNumber
+	jp		p,.Digit0_IsAlpha
+	jp		m,.Digit0_IsNumber
 
-Digit0_IsAlpha:
+.Digit0_IsAlpha:
 	add		a,-$37
 	sla		a
 	sla		a
 	sla		a
 	sla		a
 	ld		(iy+1),a
-	jr		Digit1
+	jr		.Digit1
 
-Digit0_IsNumber:
+.Digit0_IsNumber:
 	add		a,-$30
 	sla		a
 	sla		a
 	sla		a
 	sla		a
 	ld		(iy+1),a
-	jr		Digit1
+	jr		.Digit1
 
-Digit1:
+.Digit1:
 	; Less than $40? Subtract $30.
 	; More than $40? Subtract $40.
 	ld		a,(ix+1)
 	cp		$40
-	jp		p,Digit1_IsAlpha
-	jp		m,Digit1_IsNumber
+	jp		p,.Digit1_IsAlpha
+	jp		m,.Digit1_IsNumber
 
-Digit1_IsAlpha:
+.Digit1_IsAlpha:
 	add		a,-$37
 	or		(iy+1)
 	ld		(iy+1),a
-	jr		Digit2
+	jr		.Digit2
 
-Digit1_IsNumber:
+.Digit1_IsNumber:
 	add		a,-$30
 	or		(iy+1)
 	ld		(iy+1),a
-	jr		Digit2
+	jr		.Digit2
 
-Digit2:
+.Digit2:
 	; Less than $40? Subtract $30.
 	; More than $40? Subtract $40.
 	ld		a,(ix+2)
 	cp		$40
-	jp		p,Digit2_IsAlpha
-	jp		m,Digit2_IsNumber
+	jp		p,.Digit2_IsAlpha
+	jp		m,.Digit2_IsNumber
 
-Digit2_IsAlpha:
+.Digit2_IsAlpha:
 	add		a,-$37
 	sla		a
 	sla		a
 	sla		a
 	sla		a
-	ld		(iy+1),a
-	jr		Digit3
+	ld		(iy+0),a
+	jr		.Digit3
 
-Digit2_IsNumber:
+.Digit2_IsNumber:
 	add		a,-$30
 	sla		a
 	sla		a
 	sla		a
 	sla		a
 	ld		(iy+0),a
-	jr		Digit3
+	jr		.Digit3
 
-Digit3:
+.Digit3:
 	; Less than $40? Subtract $30.
 	; More than $40? Subtract $40.
 	ld		a,(ix+3)
 	cp		$40
-	jp		p,Digit3_IsAlpha
-	jp		m,Digit3_IsNumber
+	jp		p,.Digit3_IsAlpha
+	jp		m,.Digit3_IsNumber
 
-Digit3_IsAlpha:
+.Digit3_IsAlpha:
 	add		a,-$37
 	or		(iy+0)
 	ld		(iy+0),a
-	jr		Done
+	jr		.Done
 
-Digit3_IsNumber:
+.Digit3_IsNumber:
 	add		a,-$30
 	or		(iy+0)
 	ld		(iy+0),a
-	jr		Done
+	jr		.Done
 
-Done:
+.Done:
 	ret
-#endlocal
 ;;;;;;;;
 
 ;;;;;;;;
@@ -327,8 +336,10 @@ ConvertHex16ToString:
 	ld		iy,HexToString_Dest
 
 	ld		hl,0
-	ld		(iy+0),hl
-	ld		(iy+2),hl
+	ld		(iy+0),l
+	ld		(iy+1),h
+	ld		(iy+2),l
+	ld		(iy+3),h
 
 	; A
 	ld		a,(ix+1)
@@ -387,8 +398,10 @@ ConvertHex8ToString:
 	ld		ix,HexToString_Source
 
 	ld		hl,0
-	ld		(iy+0),hl
-	ld		(iy+2),hl
+	ld		(iy+0),l
+	ld		(iy+1),h
+	ld		(iy+2),l
+	ld		(iy+3),h
 
 	ld		a,(ix)
 	and		$F0		; now we only have A
@@ -473,15 +486,14 @@ CmdDebugOutput:
 
 ;;;;;;;;;;;;;;;;;;
 GetArgument:
-#local
 	; Clear the 4 argument buffers.
 	ld		b,16*4
 	ld		a,0
 	ld		hl,MON_Argument1
-1$:
+.loop:
 	ld		(hl),0
 	inc		hl
-	djnz	1$
+	djnz	.loop
 
 	; Copy from buffer_Input+MON_ArgStartsAt into the argument buffers.
 	; Max 4 space-delimited arguments.
@@ -496,15 +508,15 @@ GetArgument:
 
 	; HL is now the beginning of the argument.
 	; DE is now the destination address.
-ArgumentCopyLoop:
+.ArgumentCopyLoop:
 	; Copy until we find a SPC. A CR/LF advances to the next argument buffer.
 	; Only 4 arguments are supported.
 	ld		a,(hl)
 	inc		hl
 	cp		$0D
-	jr		z,done
+	jr		z,.done
 	cp		$20
-	jr		nz,copychar
+	jr		nz,.copychar
 	
 	; Advance to the next argument.
 	ld		a,ixl
@@ -513,34 +525,33 @@ ArgumentCopyLoop:
 	add		a,16
 	ld		ixl,a
 
-	jr		ArgumentCopyLoop
+	jr		.ArgumentCopyLoop
 
-copychar:
+.copychar:
 	ld		(de),a
 	inc		de
-	djnz	ArgumentCopyLoop
+	djnz	.ArgumentCopyLoop
 
-done:
+.done:
 	ret
-#endlocal
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ClearInputBuffer:
 	ld		a,0
 	ld		hl,buffer_Input
-1$:
+.clear:
 	ld		(hl),0
 	inc		hl
 	inc		a
 	cp		$FF
-	jr		nz,1$
+	jr		nz,.clear
 	ret
 
-#include "commands/memory.asm"
-#include "commands/go.asm"
-#include "commands/upload.asm"
+	include "commands/memory.asm"
+	include "commands/go.asm"
+	include "commands/upload.asm"
 
-#code	_CODE
+	PAGE 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Monitor_InterpretCommand:
@@ -572,40 +583,38 @@ Monitor_InterpretCommand:
 	ret
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#data	DATA	; Data section in RAM. Assume 32K of RAM on an RC2014.
+	PAGE 2	; Data section in RAM. Assume 32K of RAM on an RC2014.
 
 buffer_base:
-buffer_len:				.db 0
-buffer_inputsize:		.db 0
-buffer_Input:			.ds	255	; 255 bytes of input storage
+buffer_len:				db 0
+buffer_inputsize:		db 0
+buffer_Input:			ds	255	; 255 bytes of input storage
 
 ;;;
-StringToHex_Source:		.ds 16
-StringToHex_Dest:		.ds 8
+StringToHex_Source:		ds 16
+StringToHex_Dest:		ds 8
 
-HexToString_Source:		.ds	4
-HexToString_Dest:		.ds 4
-
-;;;
-MemoryOutputStartAddr:	.dw 0
-MemoryOutputCurAddr:	.dw 0
-MemoryOutputEndAddr:	.dw 0
-MemoryOutputBytesLeft:	.dw 0
+HexToString_Source:		ds	4
+HexToString_Dest:		ds 4
 
 ;;;
-HEX_DestinationAddr:	.dw 0
+MemoryOutputStartAddr:	dw 0
+MemoryOutputCurAddr:	dw 0
+MemoryOutputEndAddr:	dw 0
+MemoryOutputBytesLeft:	dw 0
+
+;;;
+HEX_DestinationAddr:	dw 0
 
 ;;;;;;;;;;;;;;;;;;;
 ; ROM monitor data stuff
-MON_PreviousCmd:	.db		0,0
-MON_Command:		.db		0,0
+MON_PreviousCmd:	db		0,0
+MON_Command:		db		0,0
 
-MON_ArgDestPtr:		.dw		0
-MON_ArgStartsAt: 	.db		0
-	.org $8800			; ensure these are page-aligned
-MON_Argument1:		.ds		16
-MON_Argument2:		.ds		16
-MON_Argument3:		.ds		16
-MON_Argument4:		.ds		16
-
-#end
+MON_ArgDestPtr:		dw		0
+MON_ArgStartsAt: 	db		0
+	org $8800			; ensure these are page-aligned
+MON_Argument1:		ds		16
+MON_Argument2:		ds		16
+MON_Argument3:		ds		16
+MON_Argument4:		ds		16

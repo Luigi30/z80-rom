@@ -1,28 +1,157 @@
-#target bin
+Sjasm Z80 Assembler v0.42c - www.xl2s.tk             [2020.02.07 - 01:38:47]
 
-#include "bios.inc"
-B_CONOUT        = 0
-B_STROUT        = 1
-B_CONIN         = 2
-B_CONSTAT       = 3
-B_STRIN         = 4
+hextest.asm
+Errors: 0
 
-DoBIOS	.macro
-		rst	$20
-		.endm
+       1   00:0000                          OUTPUT  "out/hextest.bin"
+       2   00:9000                      
+       3   00:9000                          org $9000
+       4   00:9000                      
+       5   00:9000                          include "bios.inc"
+       1.  00:9000  (00:0000)           B_CONOUT        = 0
+       2.  00:9000  (00:0001)           B_STROUT        = 1
+       3.  00:9000  (00:0002)           B_CONIN         = 2
+       4.  00:9000  (00:0003)           B_CONSTAT       = 3
+       5.  00:9000  (00:0004)           B_STRIN         = 4
+       6.  00:9000                      
+       7.  00:9000                      MACRO	DoBIOS	
+       8.  00:9000                    < 		rst	$20
+       9.  00:9000                    < ENDMACRO
+       6   00:9000                      
+       7   00:9000  (00:00BE)           VDP_DATA    = $BE
+       8   00:9000  (00:00BF)           VDP_STATUS  = $BF
+       9   00:9000  (00:00BF)           VDP_REGS    = $BF
+      10   00:9000                      
+      11   00:9000                      ; Command bits
+      12   00:9000  (00:0040)           VDP_VRAM_WRITE  = $40
+      13   00:9000  (00:0080)           VDP_REG_WRITE   = $80
+      14   00:9000                      
+      15   00:9000                      START:
+      16   00:9000  11 0C 90                ld		de,HelloWorld
+      17   00:9003  0E 01               	ld		c,B_STROUT
+      18   00:9005                      	DoBIOS
+      18   00:9005  E7                >   rst $20
+      19   00:9006                      
+      20   00:9006  F3                      di
+      21   00:9007                      
+      22   00:9007                          ; Reset the VDP
+      23   00:9007  CD 2C 90                call VDP_Reset
+      24   00:900A                      
+      25   00:900A  FB                      ei
+      26   00:900B  C9                      ret
+      27   00:900C                      
+      28   00:900C                      HelloWorld:
+      29   00:900C                      	db	    "TMS9918 ASCII Thingy",13,10,0,1
+      29   00:900C  54 4D 53 39 39 31 38 20 41 53 43 49 49 20 54 68 
+      29   00:901C  69 6E 67 79 0D 0A 00 01 
+      30   00:9024                      
+      31   00:9024                      VDP_SetRegister:
+      32   00:9024                          ; A is the value
+      33   00:9024                          ; E is the register number
+      34   00:9024                      
+      35   00:9024                          ; ld      hl,VDP_ShadowRegs
+      36   00:9024                          ; ld      d,0
+      37   00:9024                          ; add     hl,de   ; Add offset to shadow register.
+      38   00:9024                          ; ld      (hl),a  ; Update shadow value.
+      39   00:9024                          ; out     (VDP_REGS),a    ; send a byte of data
+      40   00:9024                          ; ld      a,VDP_REG_WRITE ; select register to write it to
+      41   00:9024                          ; or      e
+      42   00:9024                          ; out     (VDP_REGS),a
+      43   00:9024                      
+      44   00:9024  D3 BF                   out     (VDP_REGS),a
+      45   00:9026  7B                      ld      a,e
+      46   00:9027  F6 80                   or      $80
+      47   00:9029  D3 BF                   out     (VDP_REGS),a
+      48   00:902B                      
+      49   00:902B  C9                      ret
+      50   00:902C                      
+      51   00:902C                      VDP_Reset:
+      52   00:902C  3E 00                   ld      a,0
+      53   00:902E  DD 21 83 90             ld      ix,VDP_ShadowRegs
+      54   00:9032  DD 77 00                ld      (ix+0),a
+      55   00:9035  DD 77 01                ld      (ix+1),a
+      56   00:9038  DD 77 02                ld      (ix+2),a
+      57   00:903B  DD 77 03                ld      (ix+3),a
+      58   00:903E  DD 77 04                ld      (ix+4),a
+      59   00:9041  DD 77 05                ld      (ix+5),a
+      60   00:9044  DD 77 06                ld      (ix+6),a
+      61   00:9047  DD 77 07                ld      (ix+7),a
+      62   00:904A                      
+      63   00:904A                          ; TODO: Clear VRAM
+      64   00:904A                      
+      65   00:904A                          ; Set up graphics mode.
+      66   00:904A  3E 02                   ld      a,%00000010
+      67   00:904C  1E 00                   ld      e,0
+      68   00:904E  CD 24 90                call    VDP_SetRegister
+      69   00:9051  3E C2                   ld      a,%11000010
+      70   00:9053  1E 01                   ld      e,1
+      71   00:9055  CD 24 90                call    VDP_SetRegister
+      72   00:9058  3E 0E                   ld      a,%00001110
+      73   00:905A  1E 02                   ld      e,2
+      74   00:905C  CD 24 90                call    VDP_SetRegister
+      75   00:905F  3E FF                   ld      a,%11111111
+      76   00:9061  1E 03                   ld      e,3
+      77   00:9063  CD 24 90                call    VDP_SetRegister
+      78   00:9066  3E 03                   ld      a,%00000011
+      79   00:9068  1E 04                   ld      e,4
+      80   00:906A  CD 24 90                call    VDP_SetRegister
+      81   00:906D  3E 76                   ld      a,%01110110
+      82   00:906F  1E 05                   ld      e,5
+      83   00:9071  CD 24 90                call    VDP_SetRegister
+      84   00:9074  3E 03                   ld      a,%00000011
+      85   00:9076  1E 06                   ld      e,6
+      86   00:9078  CD 24 90                call    VDP_SetRegister
+      87   00:907B  3E 0F                   ld      a,%00001111
+      88   00:907D  1E 07                   ld      e,7
+      89   00:907F  CD 24 90                call    VDP_SetRegister
+      90   00:9082                      
+      91   00:9082  C9                      ret
+      92   00:9083                      
+      93   00:9083  00 (8)              VDP_ShadowRegs: ds 8   ; 8 bytes of shadow registers
+      94   00:908B                      
+      95   00:908B                      VDP_TextDefaults:
+      96   00:908B  00                      db      %00000000               ; text mode, no external video
+      97   00:908C  D0                      db      %11010000               ; 16K, Enable Display, Disable Interrupt
+      98   00:908D  00                      db      $00                     ; name table at $0000
+      99   00:908E  00                      db      $00                     ; color table not used
+     100   00:908F  01                      db      $01                     ; pattern table at $0800
+     101   00:9090  00                      db      $00                     ; sprite attribute table not used
+     102   00:9091  00                      db      $00                     ; sprite pattern table not used
+     103   00:9092  F2                      db      $F2                     ; white text on black background
 
-#code 	CODE,0x8400,0x1000
+    LABELS
+-------------------------------------------------
+00:00000000 X B_CONOUT
+00:00000001   B_STROUT
+00:00000002 X B_CONIN
+00:00000003 X B_CONSTAT
+00:00000004 X B_STRIN
+00:000000BE X VDP_DATA
+00:000000BF X VDP_STATUS
+00:000000BF   VDP_REGS
+00:00000040 X VDP_VRAM_WRITE
+00:00000080 X VDP_REG_WRITE
+00:00009000 X START
+00:0000900C   HelloWorld
+00:00009024   VDP_SetRegister
+00:0000902C   VDP_Reset
+00:00009083   VDP_ShadowRegs
+00:0000908B X VDP_TextDefaults
 
-START:
-    ld		de,HelloWorld
-	ld		c,B_STROUT
-	DoBIOS
-		rst	$20
-    ret
 
-HelloWorld:
-	.ascii	"Hi!",13,10,0,1
+ Output: hextest.out
+-------------------------------------------------
 
+ Page: 00
+  Org: 00009000  Size: *  Used: 00000000
 
-total time: 0.0278 sec.
-no errors
+    No output
+
+ Output: out\hextest.bin
+-------------------------------------------------
+
+ Page: 00
+  Org: 00009000  Size: *  Used: 00000093
+
+   Address   Length Align   Label
+   00009000     147         START

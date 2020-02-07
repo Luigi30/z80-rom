@@ -1,3 +1,12 @@
+	page 1
+
+BIOS_FnTable:
+	dw  B_Conout		; C = 0
+	dw	B_Strout		; C = 1
+	dw	B_Conin			; C = 2
+	dw	B_Constat		; C = 3
+	dw	B_Strin			; C = 4
+
 ;;; rc2014_getc
 ;;; Wait for the UART to receive a character.
 ;;; Return the character in HL.
@@ -35,15 +44,13 @@ rc2014_pollc:
 
 ;;; ;;;;;;;;;;;;;
 rc2014_sio_TX:
-#local
 		push af
-txbusy: in a,($80)          ; read serial status
+.txb: 	in a,($80)          ; read serial status
         bit 2,a             ; check status bit 2
-        jr z, txbusy        ; loop if zero (serial is busy)
+        jr z, .txb        	; loop if zero (serial is busy)
         pop af
         out ($81), a        ; transmit the character
         ret
-#endlocal
 
 ;;; ;;;;;;;;;;;;;
 rc2014_sio_init:
@@ -100,8 +107,15 @@ B_Dispatch:
 	sla		c		; shift C to produce a table offset
 	ld		e,c		; E <- C
 	add		hl,de	; Apply the offset.
-	ld		de,(hl)	; Get the destination address.
-	ld		hl,de	; Move it into HL so we can jump to it.
+
+	; ld	de,(hl)	; Get the destination address. - Not in SJASM.
+	ld		a,(hl)
+	ld		e,a
+	inc		hl
+	ld		d,(hl)
+
+	push	de		; Move it into HL so we can jump to it.
+	pop		hl
 
 	pop		af		; Restore AF and DE.
 	pop		de
@@ -119,27 +133,25 @@ B_Conout:
 	ret
 
 ;;
-#local
-B_Strout::
+B_Strout:
 	;; STRing OUTput.
 	;; Input:
 	;; DE - string address
 	;;
 	;; Perform B_Conout until a 0 is found in the string.
-1$:	
+.loop1:
 	ld		a,(de)
 	cp		#0
-	jr		z,2$
+	jr		z,.loop2
 	push	de
 	ld		e,a
 	call	B_Conout
 	pop		de
 	inc		de
-	jr		1$
+	jr		.loop1
 
-2$:
+.loop2:
 	ret	
-#endlocal	
 ;;
 
 B_Conin:
@@ -163,8 +175,7 @@ B_Constat:
 	ld		a,l
 	ret
 
-#local
-B_Strin::
+B_Strin:
 	;; Read string into buffer.
 	;; Buffer structure is as follows:
 	;;	db buffer_size		- how many characters are allowed
@@ -172,31 +183,32 @@ B_Strin::
 	;;	byte[buffer_size] 	- the input string
 	;;
 	;; Buffer address is placed in DE.
-	ld		iy,de	; Copy buffer base address to IY
+	push	de
+	pop		iy		; Copy buffer base address to IY.
 	inc		iy
 	inc		iy		; advance 2 bytes to start of the string buffer
 
 	ld		ix,0	; clear input length
 
-begin:
+.begin:
 	rst		$10		; Get an input character.
 
 	; Check for Ctrl+H
 	ld		a,l
 	cp		$08
-	jr		z,handlebs
+	jr		z,.handlebs
 
-check2:
+.check2:
 	; Check for 0x7F (some terminals use this instead)
 	ld		a,l
 	cp		$7F	
-	jr		nz,charout	; Any other character bypasses
+	jr		nz,.charout	; Any other character bypasses
 
-handlebs:
+.handlebs:
 	;; Handle the backspace.
 	ld		a,ixl	; is the input length already 0? if so, ignore and go back to waiting for input
 	cp		0
-	jr		z,begin
+	jr		z,.begin
 
 	; Reset the write pointer and length.
 	dec		iy
@@ -219,9 +231,9 @@ handlebs:
 	pop		ix
 	pop		hl
 	pop		de
-	jr		begin	; And we're done.
+	jr		.begin	; And we're done.
 
-charout:
+.charout:
 	; write character to buffer
 	ld		(iy),l	; copy the character to the input buffer
 	inc		iy		; advance buffer
@@ -229,7 +241,7 @@ charout:
 
 	; TODO: Length == buffer size? If so, don't allow more characters.
 
-write:	
+.write:	
 	; write character to console
 	push	de
 	push	hl
@@ -246,7 +258,7 @@ write:
 	; Is the character 0x0D?
 	ld		a,l
 	cp		$0D	; LF
-	jr		nz,begin		; loop if no
+	jr		nz,.begin		; loop if no
 
 	; add a null
 	ld		l,0
@@ -256,15 +268,8 @@ write:
 
 	; Write the length to the buffer struct
 	ld		a,ixl
-	ld		iy,de
+	push	de
+	pop		iy
 	ld		(iy+1),a
 
 	ret
-#endlocal
-
-BIOS_FnTable:
-	.dw B_Conout		; C = 0
-	.dw	B_Strout		; C = 1
-	.dw	B_Conin			; C = 2
-	.dw	B_Constat		; C = 3
-	.dw	B_Strin			; C = 4

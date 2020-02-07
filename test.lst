@@ -1,1327 +1,1485 @@
-              	; --------------------------------------
-              	; zasm: assemble "test.asm"
-              	; date: 2020-02-06 02:37:38
-              	; --------------------------------------
+Sjasm Z80 Assembler v0.42c - www.xl2s.tk             [2020.02.07 - 01:38:47]
+
+test.asm
+Errors: 0
+
+       1   00:0000                      ; Memory map for Procyon/80 and RC2014 64K
+       2   00:0000                      ;
+       3   00:0000                      ;	$0000-$7FFF - ROM region - currently uses $0000-$1FFF
+       4   00:0000                      ;	$8000-$8FFF - Kernel private RAM
+       5   00:0000                      ;	$9000-$FFFF - Transient Program Area (load programs here)
+       6   00:0000                      
+       7   00:0000                      	OUTPUT "out/test.rom"
+       8   00:0000                      
+       9   00:0000                      	DEFPAGE	0, 0000h, 0200h		; Boot vectors and stuff
+      10   00:0000                      	DEFPAGE 1, 0200h, 0E00h	; Kernel code
+      11   00:0000                      	DEFPAGE 2, 8000h, 1000h ; Kernel data
+      12   00:0000                      
+      13   00:0000                      include "bios.inc"
+       1.  00:0000  (00:0000)           B_CONOUT        = 0
+       2.  00:0000  (00:0001)           B_STROUT        = 1
+       3.  00:0000  (00:0002)           B_CONIN         = 2
+       4.  00:0000  (00:0003)           B_CONSTAT       = 3
+       5.  00:0000  (00:0004)           B_STRIN         = 4
+       6.  00:0000                      
+       7.  00:0000                      MACRO	DoBIOS	
+       8.  00:0000                    < 		rst	$20
+       9.  00:0000                    < ENDMACRO
+      14   00:0000                      
+      15   00:0000                      include	"rc2014.asm"
+       1.  00:0000  (01)                	page 1
+       2.  01:063B                      
+       3.  01:063B                      BIOS_FnTable:
+       4.  01:063B  AF 06               	dw  B_Conout		; C = 0
+       5.  01:063D  B4 06               	dw	B_Strout		; C = 1
+       6.  01:063F  C3 06               	dw	B_Conin			; C = 2
+       7.  01:0641  C8 06               	dw	B_Constat		; C = 3
+       8.  01:0643  CD 06               	dw	B_Strin			; C = 4
+       9.  01:0645                      
+      10.  01:0645                      ;;; rc2014_getc
+      11.  01:0645                      ;;; Wait for the UART to receive a character.
+      12.  01:0645                      ;;; Return the character in HL.
+      13.  01:0645                      rc2014_getc:
+      14.  01:0645  F5                          push 	af
+      15.  01:0646  DB 80               waitch:	in 		a,(SIOA_C)
+      16.  01:0648  CB 47                       bit 	0,a
+      17.  01:064A  28 FA                       jr 		z,waitch
+      18.  01:064C  DB 81                       in 		a,(SIOA_D)
+      19.  01:064E  26 00                       ld 		h,0
+      20.  01:0650  6F                          ld 		l,a
+      21.  01:0651  F1                          pop 	af
+      22.  01:0652  C9                          ret
+      23.  01:0653                      
+      24.  01:0653                      ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      25.  01:0653                      ;;; rc2014_putc
+      26.  01:0653                      ;;; Output the byte in L to the SIO.
+      27.  01:0653                      ;;;
+      28.  01:0653                      rc2014_putc:
+      29.  01:0653  7D                  	ld	a,l
+      30.  01:0654  CF                  	rst	$08
+      31.  01:0655  C9                  	ret
+      32.  01:0656                      
+      33.  01:0656                      ;;; rc2014_pollc
+      34.  01:0656                      ;;; Poll the UART receive buffer.
+      35.  01:0656                      ;;; L <- 1 if data available
+      36.  01:0656                      ;;; L <- 0 if no data available
+      37.  01:0656                      rc2014_pollc:
+      38.  01:0656  2E 00               	ld	l,0
+      39.  01:0658  DB 80               	in	a,(SIOA_C)
+      40.  01:065A  CB 47               	bit	0,a
+      41.  01:065C  C8                  	ret	z
+      42.  01:065D  2E 01               	ld	l,1
+      43.  01:065F  C9                  	ret
+      44.  01:0660                      
+      45.  01:0660                      ;;; ;;;;;;;;;;;;;
+      46.  01:0660                      rc2014_sio_TX:
+      47.  01:0660  F5                  		push af
+      48.  01:0661  DB 80               .txb: 	in a,($80)          ; read serial status
+      49.  01:0663  CB 57                       bit 2,a             ; check status bit 2
+      50.  01:0665  28 FA                       jr z, .txb        	; loop if zero (serial is busy)
+      51.  01:0667  F1                          pop af
+      52.  01:0668  D3 81                       out ($81), a        ; transmit the character
+      53.  01:066A  C9                          ret
+      54.  01:066B                      
+      55.  01:066B                      ;;; ;;;;;;;;;;;;;
+      56.  01:066B                      rc2014_sio_init:
+      57.  01:066B                      ;;; Set up the SIO channel A for UART transmit/receive.
+      58.  01:066B  3E 30               	ld	a,00110000b	; WR0: error reset, select WR0
+      59.  01:066D  D3 80               	out	(SIOA_C),a
+      60.  01:066F  3E 18               	ld	a,018h		; WR0: reset
+      61.  01:0671  D3 80               	out	(SIOA_C),a
+      62.  01:0673                      
+      63.  01:0673  3E 04               	ld	a,04h		; WR0: select WR4
+      64.  01:0675  D3 80               	out	(SIOA_C),a
+      65.  01:0677  3E C4               	ld	a,11000100b	; WR4: CLK/64, 1 stop, N parity (at 2.4MHz, 38400bps)
+      66.  01:0679  D3 80               	out	(SIOA_C),a
+      67.  01:067B                      
+      68.  01:067B  3E 05               	ld	a,05h		; WR0: select WR5
+      69.  01:067D  D3 80               	out	(SIOA_C),a
+      70.  01:067F  3E E8               	ld	a,11101000b	; DTR, TX 8bit, no BRK, TX on, no RTS
+      71.  01:0681  D3 80               	out	(SIOA_C),a
+      72.  01:0683                      
+      73.  01:0683  3E 01               	ld	a,01h		; WR0: select WR1
+      74.  01:0685  D3 82               	out	(SIOB_C),A
+      75.  01:0687  3E 04               	ld	a,00000100b	; No CH B interrupt
+      76.  01:0689                      
+      77.  01:0689  3E 01               	ld	a,01h		; WR0: Select WR1
+      78.  01:068B  D3 80               	out	(SIOA_C),A	
+      79.  01:068D  3E 00               	ld	a,00h		; WR1: All interrupts off
+      80.  01:068F  D3 80               	out	(SIOA_C),A
+      81.  01:0691                      
+      82.  01:0691                      	;; Enable SIO RX on channel A.
+      83.  01:0691  3E 03               	ld	a,03h
+      84.  01:0693  D3 80               	out	(SIOA_C),a
+      85.  01:0695  3E C1               	ld	a,0C1h		; RX 8bit, RX on, auto enable off
+      86.  01:0697  D3 80               	out	(SIOA_C),a
+      87.  01:0699                      
+      88.  01:0699  C9                  	ret
+      89.  01:069A                      
+      90.  01:069A                      ;;; ;;;;;;;;;;;;;;;;;
+      91.  01:069A                      ;;; BIOS functions
+      92.  01:069A                      ;;;
+      93.  01:069A                      ;;; API:
+      94.  01:069A                      ;;;		All BIOS functions are prefixed with B_
+      95.  01:069A                      ;;; 	Input is DE
+      96.  01:069A                      ;;;		Output bytes are in A
+      97.  01:069A                      ;;;		Output words are in HL (todo: ?)
+      98.  01:069A                      ;;;
+      99.  01:069A                      ;;;		Do not assume any registers are preserved.
+     100.  01:069A                      B_Dispatch:
+     101.  01:069A                      	;; Dispatch to the function number C.
+     102.  01:069A  D5                  	push	de
+     103.  01:069B  F5                  	push	af
+     104.  01:069C  21 3B 06            	ld		hl,BIOS_FnTable	; grab the jump table address
+     105.  01:069F  16 00               	ld		d,0		; clear D
+     106.  01:06A1                      	
+     107.  01:06A1  CB 21               	sla		c		; shift C to produce a table offset
+     108.  01:06A3  59                  	ld		e,c		; E <- C
+     109.  01:06A4  19                  	add		hl,de	; Apply the offset.
+     110.  01:06A5                      
+     111.  01:06A5                      	; ld	de,(hl)	; Get the destination address. - Not in SJASM.
+     112.  01:06A5  7E                  	ld		a,(hl)
+     113.  01:06A6  5F                  	ld		e,a
+     114.  01:06A7  23                  	inc		hl
+     115.  01:06A8  56                  	ld		d,(hl)
+     116.  01:06A9                      
+     117.  01:06A9  D5                  	push	de		; Move it into HL so we can jump to it.
+     118.  01:06AA  E1                  	pop		hl
+     119.  01:06AB                      
+     120.  01:06AB  F1                  	pop		af		; Restore AF and DE.
+     121.  01:06AC  D1                  	pop		de
+     122.  01:06AD  E9                  	jp		(hl)	; Jump to the BIOS function, which RETs back to where we started.
+     123.  01:06AE  C9                  	ret				; Unnecessary unless something breaks
+     124.  01:06AF                      	
+     125.  01:06AF                      ;;
+     126.  01:06AF                      B_Conout:
+     127.  01:06AF                      	;; CONsole OUTput.
+     128.  01:06AF                      	;; 
+     129.  01:06AF                      	;; Input:
+     130.  01:06AF                      	;; E - character
+     131.  01:06AF  7B                  	ld		a,e
+     132.  01:06B0  CD 60 06            	call	rc2014_sio_TX
+     133.  01:06B3  C9                  	ret
+     134.  01:06B4                      
+     135.  01:06B4                      ;;
+     136.  01:06B4                      B_Strout:
+     137.  01:06B4                      	;; STRing OUTput.
+     138.  01:06B4                      	;; Input:
+     139.  01:06B4                      	;; DE - string address
+     140.  01:06B4                      	;;
+     141.  01:06B4                      	;; Perform B_Conout until a 0 is found in the string.
+     142.  01:06B4                      .loop1:
+     143.  01:06B4  1A                  	ld		a,(de)
+     144.  01:06B5  FE 00               	cp		#0
+     145.  01:06B7  28 09               	jr		z,.loop2
+     146.  01:06B9  D5                  	push	de
+     147.  01:06BA  5F                  	ld		e,a
+     148.  01:06BB  CD AF 06            	call	B_Conout
+     149.  01:06BE  D1                  	pop		de
+     150.  01:06BF  13                  	inc		de
+     151.  01:06C0  18 F2               	jr		.loop1
+     152.  01:06C2                      
+     153.  01:06C2                      .loop2:
+     154.  01:06C2  C9                  	ret	
+     155.  01:06C3                      ;;
+     156.  01:06C3                      
+     157.  01:06C3                      B_Conin:
+     158.  01:06C3                      	;; CONsole INput.
+     159.  01:06C3                      	;;
+     160.  01:06C3                      	;; Blocks until a character is available on the console.
+     161.  01:06C3                      	;; Output:
+     162.  01:06C3                      	;; A = character received
+     163.  01:06C3  CD 45 06            	call	rc2014_getc	; returns char in L
+     164.  01:06C6  7D                  	ld		a,l			; copy it to A and return
+     165.  01:06C7  C9                  	ret
+     166.  01:06C8                      	;;
+     167.  01:06C8                      
+     168.  01:06C8                      B_Constat:
+     169.  01:06C8                      	;; CONsole STATus.
+     170.  01:06C8                      	;;
+     171.  01:06C8                      	;; Output:
+     172.  01:06C8                      	;; A  = 0 if no characters are waiting to be read
+     173.  01:06C8                      	;; A != 0 if character is waiting
+     174.  01:06C8  CD 56 06            	call	rc2014_pollc
+     175.  01:06CB  7D                  	ld		a,l
+     176.  01:06CC  C9                  	ret
+     177.  01:06CD                      
+     178.  01:06CD                      B_Strin:
+     179.  01:06CD                      	;; Read string into buffer.
+     180.  01:06CD                      	;; Buffer structure is as follows:
+     181.  01:06CD                      	;;	db buffer_size		- how many characters are allowed
+     182.  01:06CD                      	;;	db input_length 	- populated after input is complete
+     183.  01:06CD                      	;;	byte[buffer_size] 	- the input string
+     184.  01:06CD                      	;;
+     185.  01:06CD                      	;; Buffer address is placed in DE.
+     186.  01:06CD  D5                  	push	de
+     187.  01:06CE  FD E1               	pop		iy		; Copy buffer base address to IY.
+     188.  01:06D0  FD 23               	inc		iy
+     189.  01:06D2  FD 23               	inc		iy		; advance 2 bytes to start of the string buffer
+     190.  01:06D4                      
+     191.  01:06D4  DD 21 00 00         	ld		ix,0	; clear input length
+     192.  01:06D8                      
+     193.  01:06D8                      .begin:
+     194.  01:06D8  D7                  	rst		$10		; Get an input character.
+     195.  01:06D9                      
+     196.  01:06D9                      	; Check for Ctrl+H
+     197.  01:06D9  7D                  	ld		a,l
+     198.  01:06DA  FE 08               	cp		$08
+     199.  01:06DC  28 05               	jr		z,.handlebs
+     200.  01:06DE                      
+     201.  01:06DE                      .check2:
+     202.  01:06DE                      	; Check for 0x7F (some terminals use this instead)
+     203.  01:06DE  7D                  	ld		a,l
+     204.  01:06DF  FE 7F               	cp		$7F	
+     205.  01:06E1  20 27               	jr		nz,.charout	; Any other character bypasses
+     206.  01:06E3                      
+     207.  01:06E3                      .handlebs:
+     208.  01:06E3                      	;; Handle the backspace.
+     209.  01:06E3  DD 7D               	ld		a,ixl	; is the input length already 0? if so, ignore and go back to waiting for input
+     210.  01:06E5  FE 00               	cp		0
+     211.  01:06E7  28 EF               	jr		z,.begin
+     212.  01:06E9                      
+     213.  01:06E9                      	; Reset the write pointer and length.
+     214.  01:06E9  FD 2B               	dec		iy
+     215.  01:06EB  DD 2B               	dec		ix
+     216.  01:06ED                      
+     217.  01:06ED  D5                  	push	de
+     218.  01:06EE  E5                  	push	hl
+     219.  01:06EF  DD E5               	push	ix
+     220.  01:06F1  FD E5               	push	iy
+     221.  01:06F3  1E 08               	ld		e,$08
+     222.  01:06F5  0E 00               	ld		c,B_CONOUT
+     223.  01:06F7                      	DoBIOS		; console BS
+     223.  01:06F7  E7                >   rst $20
+     224.  01:06F8  1E 20               	ld		e,$20
+     225.  01:06FA  0E 00               	ld		c,B_CONOUT
+     226.  01:06FC                      	DoBIOS		; console SPC
+     226.  01:06FC  E7                >   rst $20
+     227.  01:06FD  1E 08               	ld		e,$08
+     228.  01:06FF  0E 00               	ld		c,B_CONOUT
+     229.  01:0701                      	DoBIOS		; console BS
+     229.  01:0701  E7                >   rst $20
+     230.  01:0702  FD E1               	pop		iy
+     231.  01:0704  DD E1               	pop		ix
+     232.  01:0706  E1                  	pop		hl
+     233.  01:0707  D1                  	pop		de
+     234.  01:0708  18 CE               	jr		.begin	; And we're done.
+     235.  01:070A                      
+     236.  01:070A                      .charout:
+     237.  01:070A                      	; write character to buffer
+     238.  01:070A  FD 75 00            	ld		(iy),l	; copy the character to the input buffer
+     239.  01:070D  FD 23               	inc		iy		; advance buffer
+     240.  01:070F  DD 23               	inc		ix		; length++
+     241.  01:0711                      
+     242.  01:0711                      	; TODO: Length == buffer size? If so, don't allow more characters.
+     243.  01:0711                      
+     244.  01:0711                      .write:	
+     245.  01:0711                      	; write character to console
+     246.  01:0711  D5                  	push	de
+     247.  01:0712  E5                  	push	hl
+     248.  01:0713  DD E5               	push	ix
+     249.  01:0715  FD E5               	push	iy
+     250.  01:0717  5D                  	ld		e,l
+     251.  01:0718  0E 00               	ld		c,B_CONOUT
+     252.  01:071A                      	DoBIOS
+     252.  01:071A  E7                >   rst $20
+     253.  01:071B  FD E1               	pop		iy
+     254.  01:071D  DD E1               	pop		ix
+     255.  01:071F  E1                  	pop		hl
+     256.  01:0720  D1                  	pop		de
+     257.  01:0721                      
+     258.  01:0721                      	; Is the character 0x0D?
+     259.  01:0721  7D                  	ld		a,l
+     260.  01:0722  FE 0D               	cp		$0D	; LF
+     261.  01:0724  20 B2               	jr		nz,.begin		; loop if no
+     262.  01:0726                      
+     263.  01:0726                      	; add a null
+     264.  01:0726  2E 00               	ld		l,0
+     265.  01:0728  FD 75 00            	ld		(iy),l	; copy the character to the input buffer
+     266.  01:072B  FD 23               	inc		iy		; advance buffer
+     267.  01:072D  DD 23               	inc		ix		; length++
+     268.  01:072F                      
+     269.  01:072F                      	; Write the length to the buffer struct
+     270.  01:072F  DD 7D               	ld		a,ixl
+     271.  01:0731  D5                  	push	de
+     272.  01:0732  FD E1               	pop		iy
+     273.  01:0734  FD 77 01            	ld		(iy+1),a
+     274.  01:0737                      
+     275.  01:0737  C9                  	ret
+      16   01:0738                      include	"strings.asm"
+       1.  01:0738                      strPrompt:
+       2.  01:0738  3E 00               	dz	">"
+       3.  01:073A                      strCRLF:
+       4.  01:073A  0D 0A 00            	db  13,10,0
+       5.  01:073D                      
+       6.  01:073D                      HelloWorld:
+       7.  01:073D                      	db	"Procyon/80 ROM Monitor - RC2014 SIO/2 64K",13,10,0
+       7.  01:073D  50 72 6F 63 79 6F 6E 2F 38 30 20 52 4F 4D 20 4D 
+       7.  01:074D  6F 6E 69 74 6F 72 20 2D 20 52 43 32 30 31 34 20 
+       7.  01:075D  53 49 4F 2F 32 20 36 34 4B 0D 0A 00 
+       8.  01:0769                      
+       9.  01:0769                      strYouEntered:
+      10.  01:0769                      	dz	"You entered: "
+      10.  01:0769  59 6F 75 20 65 6E 74 65 72 65 64 3A 20 00 
+      11.  01:0777                      
+      12.  01:0777                      strDbgCmd:
+      13.  01:0777                          dz  "Command: "
+      13.  01:0777  43 6F 6D 6D 61 6E 64 3A 20 00 
+      14.  01:0781                      
+      15.  01:0781                      strDbgArg:
+      16.  01:0781                          dz  "    Arg: "
+      16.  01:0781  20 20 20 20 41 72 67 3A 20 00 
+      17.  01:078B                      
+      18.  01:078B                      strCmdUnknown:
+      19.  01:078B                          dz  "*** Unrecognized command"
+      19.  01:078B  2A 2A 2A 20 55 6E 72 65 63 6F 67 6E 69 7A 65 64 
+      19.  01:079B  20 63 6F 6D 6D 61 6E 64 00 
+      17   01:07A4                      
+      18   01:07A4                      	;; SIO equates
+      19   01:07A4  (01:0081)           SIOA_D	EQU $81
+      20   01:07A4  (01:0080)           SIOA_C	EQU $80
+      21   01:07A4  (01:0083)           SIOB_D	EQU $83
+      22   01:07A4  (01:0082)           SIOB_C	EQU $82
+      23   01:07A4                      	
+      24   01:07A4  (00)                		page 0
+      25   00:0000                      	;;  see rc2014init.asm
+      26   00:0000                      		org 0
+      27   00:0000                      	
+      28   00:0000  F3                  RST00:	di			; interrupts off
+      29   00:0001  C3 00 02            		jp	Start
+      30   00:0004  00                  		nop
+      31   00:0005  00                  		nop
+      32   00:0006  00                  		nop
+      33   00:0007  00                  		nop			
+      34   00:0008                      
+      35   00:0008  C3 60 06            RST08:	jp	rc2014_sio_TX	; 0x08
+      36   00:000B  00                  		nop
+      37   00:000C  00                  		nop
+      38   00:000D  00                  		nop
+      39   00:000E  00                  		nop
+      40   00:000F  00                  		nop
+      41   00:0010                      
+      42   00:0010  C3 45 06            RST10:	jp	rc2014_getc	; 0x10
+      43   00:0013  00                  		nop
+      44   00:0014  00                  		nop
+      45   00:0015  00                  		nop
+      46   00:0016  00                  		nop
+      47   00:0017  00                  		nop
+      48   00:0018                      
+      49   00:0018  C3 56 06            RST18:	jp	rc2014_pollc	; 0x18
+      50   00:001B  00                  		nop
+      51   00:001C  00                  		nop
+      52   00:001D  00                  		nop
+      53   00:001E  00                  		nop
+      54   00:001F  00                  		nop
+      55   00:0020                      
+      56   00:0020  C3 9A 06            RST20:	jp	B_Dispatch	; 0x20
+      57   00:0023  00                  		nop
+      58   00:0024  00                  		nop
+      59   00:0025  00                  		nop
+      60   00:0026  00                  		nop
+      61   00:0027  00                  		nop
+      62   00:0028                      
+      63   00:0028  C9                  RST28:	ret
+      64   00:0029  00                  		nop
+      65   00:002A  00                  		nop
+      66   00:002B  00                  		nop
+      67   00:002C  00                  		nop
+      68   00:002D  00                  		nop
+      69   00:002E                      	
+      70   00:002E  C9                  RST30:	ret
+      71   00:002F  00                  		nop
+      72   00:0030  00                  		nop
+      73   00:0031  00                  		nop
+      74   00:0032  00                  		nop
+      75   00:0033  00                  		nop
+      76   00:0034                      
+      77   00:0034  ED 4D               RST38:	reti
+      78   00:0036  00                  		nop
+      79   00:0037  00                  		nop
+      80   00:0038  00                  		nop
+      81   00:0039  00                  		nop
+      82   00:003A  00                  		nop
+      83   00:003B                      	
+      84   00:003B                      ;;; ;;;;;;;;;;;;;;;;
+      85   00:003B  (01)                	PAGE 1
+      86   01:0200                      	org	200h
+      87   01:0200                      
+      88   01:0200                      Start:
+      89   01:0200  21 F9 FF            	ld		hl,$FFF9	; initialize stack
+      90   01:0203  F9                  	ld		sp,hl
+      91   01:0204                      
+      92   01:0204                      	; Clear $9000
+      93   01:0204  06 00               	ld		b,0
+      94   01:0206  11 00 00            	ld		de,$0000
+      95   01:0209  21 00 90            	ld		hl,$9000
+      96   01:020C  3E 00               	ld		a,0
+      97   01:020E                      ClearSRAM:
+      98   01:020E  77                  	ld		(hl),a
+      99   01:020F  23                  	inc		hl
+     100   01:0210  3C                  	inc		a
+     101   01:0211  10 FB               	djnz	ClearSRAM	
+     102   01:0213                      
+     103   01:0213  F3                  	di
+     104   01:0214  CD 6B 06            	call	rc2014_sio_init
+     105   01:0217  C3 1A 02            	jp		Greet
+     106   01:021A                      	
+     107   01:021A                      Greet:
+     108   01:021A  11 3D 07            	ld		de,HelloWorld
+     109   01:021D  0E 01               	ld		c,B_STROUT
+     110   01:021F  E7                  	rst		$20
+     111   01:0220                      
+     112   01:0220                      GetInputString:
+     113   01:0220                      	; reset offset
+     114   01:0220  11 38 07            	ld		de,strPrompt
+     115   01:0223  0E 01               	ld		c,B_STROUT
+     116   01:0225                      	DoBIOS
+     116   01:0225  E7                >   rst $20
+     117   01:0226                      
+     118   01:0226  CD AA 04            	call	ClearInputBuffer
+     119   01:0229  11 00 80            	ld		de,buffer_base
+     120   01:022C  0E 04               	ld		c,B_STRIN
+     121   01:022E                      	DoBIOS
+     121   01:022E  E7                >   rst $20
+     122   01:022F  11 3A 07            	ld		de,strCRLF
+     123   01:0232  0E 01               	ld		c,B_STROUT
+     124   01:0234                      	DoBIOS
+     124   01:0234  E7                >   rst $20
+     125   01:0235                      
+     126   01:0235                      	; Take the first two bytes of buffer_Input and put them in the command register.
+     127   01:0235  ED 5B 02 80         	ld		de,(buffer_Input)
+     128   01:0239  ED 53 2D 81         	ld		(MON_Command),de
+     129   01:023D                      
+     130   01:023D                      CheckCmdLength:
+     131   01:023D                      	; Assume argument starts at buffer_Input+3
+     132   01:023D  3E 03               	ld		a,3
+     133   01:023F  32 31 81            	ld		(MON_ArgStartsAt),a
+     134   01:0242                      
+     135   01:0242                      	; Is the second byte of the command register 0x20? 
+     136   01:0242                      	; If so, the argument starts at buffer_Input+2.
+     137   01:0242  3A 2E 81            	ld		a,(MON_Command+1)
+     138   01:0245  FE 20               	cp		$20
+     139   01:0247  20 05               	jr		nz,GotCmdLength
+     140   01:0249  3E 02               	ld		a,2
+     141   01:024B  32 31 81            	ld		(MON_ArgStartsAt),a
+     142   01:024E                      
+     143   01:024E                      GotCmdLength:
+     144   01:024E  06 0A               	ld		b,10
+     145   01:0250  CD 73 04            	call	GetArgument
+     146   01:0253  CD 10 04            	call	CmdDebugOutput
+     147   01:0256                      
+     148   01:0256  CD 21 08            	call	Monitor_InterpretCommand
+     149   01:0259                      
+     150   01:0259                      ; Loop...
+     151   01:0259                      InputLoopEnd:
+     152   01:0259  11 3A 07            	ld		de,strCRLF
+     153   01:025C  0E 01               	ld		c,B_STROUT
+     154   01:025E                      	DoBIOS
+     154   01:025E  E7                >   rst $20
+     155   01:025F  11 3A 07            	ld		de,strCRLF
+     156   01:0262  0E 01               	ld		c,B_STROUT
+     157   01:0264                      	DoBIOS
+     157   01:0264  E7                >   rst $20
+     158   01:0265  C3 20 02            	jp		GetInputString
+     159   01:0268                      
+     160   01:0268                      ;;;;;;;;
+     161   01:0268                      
+     162   01:0268                      ConvertStringToHex8:
+     163   01:0268                      ; Convert the string in StringToHex_Source to a 8-bit hex value.
+     164   01:0268  DD 21 01 81         	ld		ix,StringToHex_Source
+     165   01:026C  FD 21 11 81         	ld		iy,StringToHex_Dest
+     166   01:0270                      
+     167   01:0270                      .DoConversion:
+     168   01:0270                      .Digit0:
+     169   01:0270                      	; Less than $40? Subtract $30.
+     170   01:0270                      	; More than $40? Subtract $40.
+     171   01:0270  DD 7E 00            	ld		a,(ix+0)
+     172   01:0273  FE 40               	cp		$40
+     173   01:0275  FA 87 02            	jp		m,.Digit0_IsNumber
+     174   01:0278                      
+     175   01:0278                      .Digit0_IsAlpha:
+     176   01:0278  C6 C9               	add		a,-$37
+     177   01:027A  CB 27               	sla		a
+     178   01:027C  CB 27               	sla		a
+     179   01:027E  CB 27               	sla		a
+     180   01:0280  CB 27               	sla		a
+     181   01:0282  FD 77 00            	ld		(iy+0),a
+     182   01:0285  18 0F               	jr		.Digit1
+     183   01:0287                      
+     184   01:0287                      .Digit0_IsNumber:
+     185   01:0287  C6 D0               	add		a,-$30
+     186   01:0289  CB 27               	sla		a
+     187   01:028B  CB 27               	sla		a
+     188   01:028D  CB 27               	sla		a
+     189   01:028F  CB 27               	sla		a
+     190   01:0291  FD 77 00            	ld		(iy+0),a
+     191   01:0294  18 00               	jr		.Digit1
+     192   01:0296                      
+     193   01:0296                      .Digit1:
+     194   01:0296                      	; Less than $40? Subtract $30.
+     195   01:0296                      	; More than $40? Subtract $40.
+     196   01:0296  DD 7E 01            	ld		a,(ix+1)
+     197   01:0299  FE 40               	cp		$40
+     198   01:029B  FA A8 02            	jp		m,.Digit1_IsNumber
+     199   01:029E                      
+     200   01:029E                      .Digit1_IsAlpha:
+     201   01:029E  C6 C9               	add		a,-$37
+     202   01:02A0  FD B6 00            	or		(iy+0)
+     203   01:02A3  FD 77 00            	ld		(iy+0),a
+     204   01:02A6  18 08               	jr		.Done
+     205   01:02A8                      
+     206   01:02A8                      .Digit1_IsNumber:
+     207   01:02A8  C6 D0               	add		a,-$30
+     208   01:02AA  FD B6 00            	or		(iy+0)
+     209   01:02AD  FD 77 00            	ld		(iy+0),a
+     210   01:02B0                      
+     211   01:02B0                      .Done:
+     212   01:02B0  C9                  	ret
+     213   01:02B1                      
+     214   01:02B1                      ;;;;;;;;
+     215   01:02B1                      ConvertStringToHex16:
+     216   01:02B1                      ; Convert the string in StringToHex_Source to a 16-bit hex value.
+     217   01:02B1  DD 21 01 81         	ld		ix,StringToHex_Source
+     218   01:02B5  FD 21 11 81         	ld		iy,StringToHex_Dest
+     219   01:02B9                      
+     220   01:02B9                      	; Right-justify the value and add leading zeroes.
+     221   01:02B9                      .JustifyLoop:
+     222   01:02B9  DD 7E 03            	ld		a,(ix+3)
+     223   01:02BC  FE 00               	cp		0
+     224   01:02BE  20 19               	jr		nz,.DoConversion
+     225   01:02C0  DD 7E 02            	ld		a,(ix+2)
+     226   01:02C3  DD 77 03            	ld		(ix+3),a
+     227   01:02C6  DD 7E 01            	ld		a,(ix+1)
+     228   01:02C9  DD 77 02            	ld		(ix+2),a
+     229   01:02CC  DD 7E 00            	ld		a,(ix+0)
+     230   01:02CF  DD 77 01            	ld		(ix+1),a
+     231   01:02D2  3E 30               	ld		a,$30		; ASCII 0
+     232   01:02D4  DD 77 00            	ld		(ix+0),a
+     233   01:02D7  18 E0               	jr		.JustifyLoop
+     234   01:02D9                      
+     235   01:02D9                      .DoConversion:
+     236   01:02D9                      .Digit0:
+     237   01:02D9                      	; Less than $40? Subtract $30.
+     238   01:02D9                      	; More than $40? Subtract $40.
+     239   01:02D9  DD 7E 00            	ld		a,(ix+0)
+     240   01:02DC  FE 40               	cp		$40
+     241   01:02DE  F2 E4 02            	jp		p,.Digit0_IsAlpha
+     242   01:02E1  FA F3 02            	jp		m,.Digit0_IsNumber
+     243   01:02E4                      
+     244   01:02E4                      .Digit0_IsAlpha:
+     245   01:02E4  C6 C9               	add		a,-$37
+     246   01:02E6  CB 27               	sla		a
+     247   01:02E8  CB 27               	sla		a
+     248   01:02EA  CB 27               	sla		a
+     249   01:02EC  CB 27               	sla		a
+     250   01:02EE  FD 77 01            	ld		(iy+1),a
+     251   01:02F1  18 0F               	jr		.Digit1
+     252   01:02F3                      
+     253   01:02F3                      .Digit0_IsNumber:
+     254   01:02F3  C6 D0               	add		a,-$30
+     255   01:02F5  CB 27               	sla		a
+     256   01:02F7  CB 27               	sla		a
+     257   01:02F9  CB 27               	sla		a
+     258   01:02FB  CB 27               	sla		a
+     259   01:02FD  FD 77 01            	ld		(iy+1),a
+     260   01:0300  18 00               	jr		.Digit1
+     261   01:0302                      
+     262   01:0302                      .Digit1:
+     263   01:0302                      	; Less than $40? Subtract $30.
+     264   01:0302                      	; More than $40? Subtract $40.
+     265   01:0302  DD 7E 01            	ld		a,(ix+1)
+     266   01:0305  FE 40               	cp		$40
+     267   01:0307  F2 0D 03            	jp		p,.Digit1_IsAlpha
+     268   01:030A  FA 17 03            	jp		m,.Digit1_IsNumber
+     269   01:030D                      
+     270   01:030D                      .Digit1_IsAlpha:
+     271   01:030D  C6 C9               	add		a,-$37
+     272   01:030F  FD B6 01            	or		(iy+1)
+     273   01:0312  FD 77 01            	ld		(iy+1),a
+     274   01:0315  18 0A               	jr		.Digit2
+     275   01:0317                      
+     276   01:0317                      .Digit1_IsNumber:
+     277   01:0317  C6 D0               	add		a,-$30
+     278   01:0319  FD B6 01            	or		(iy+1)
+     279   01:031C  FD 77 01            	ld		(iy+1),a
+     280   01:031F  18 00               	jr		.Digit2
+     281   01:0321                      
+     282   01:0321                      .Digit2:
+     283   01:0321                      	; Less than $40? Subtract $30.
+     284   01:0321                      	; More than $40? Subtract $40.
+     285   01:0321  DD 7E 02            	ld		a,(ix+2)
+     286   01:0324  FE 40               	cp		$40
+     287   01:0326  F2 2C 03            	jp		p,.Digit2_IsAlpha
+     288   01:0329  FA 3B 03            	jp		m,.Digit2_IsNumber
+     289   01:032C                      
+     290   01:032C                      .Digit2_IsAlpha:
+     291   01:032C  C6 C9               	add		a,-$37
+     292   01:032E  CB 27               	sla		a
+     293   01:0330  CB 27               	sla		a
+     294   01:0332  CB 27               	sla		a
+     295   01:0334  CB 27               	sla		a
+     296   01:0336  FD 77 00            	ld		(iy+0),a
+     297   01:0339  18 0F               	jr		.Digit3
+     298   01:033B                      
+     299   01:033B                      .Digit2_IsNumber:
+     300   01:033B  C6 D0               	add		a,-$30
+     301   01:033D  CB 27               	sla		a
+     302   01:033F  CB 27               	sla		a
+     303   01:0341  CB 27               	sla		a
+     304   01:0343  CB 27               	sla		a
+     305   01:0345  FD 77 00            	ld		(iy+0),a
+     306   01:0348  18 00               	jr		.Digit3
+     307   01:034A                      
+     308   01:034A                      .Digit3:
+     309   01:034A                      	; Less than $40? Subtract $30.
+     310   01:034A                      	; More than $40? Subtract $40.
+     311   01:034A  DD 7E 03            	ld		a,(ix+3)
+     312   01:034D  FE 40               	cp		$40
+     313   01:034F  F2 55 03            	jp		p,.Digit3_IsAlpha
+     314   01:0352  FA 5F 03            	jp		m,.Digit3_IsNumber
+     315   01:0355                      
+     316   01:0355                      .Digit3_IsAlpha:
+     317   01:0355  C6 C9               	add		a,-$37
+     318   01:0357  FD B6 00            	or		(iy+0)
+     319   01:035A  FD 77 00            	ld		(iy+0),a
+     320   01:035D  18 0A               	jr		.Done
+     321   01:035F                      
+     322   01:035F                      .Digit3_IsNumber:
+     323   01:035F  C6 D0               	add		a,-$30
+     324   01:0361  FD B6 00            	or		(iy+0)
+     325   01:0364  FD 77 00            	ld		(iy+0),a
+     326   01:0367  18 00               	jr		.Done
+     327   01:0369                      
+     328   01:0369                      .Done:
+     329   01:0369  C9                  	ret
+     330   01:036A                      ;;;;;;;;
+     331   01:036A                      
+     332   01:036A                      ;;;;;;;;
+     333   01:036A                      ConvertHex16ToString:
+     334   01:036A                      	; Convert the value in HexToString_Source to ASCII characters.
+     335   01:036A  DD 21 19 81         	ld		ix,HexToString_Source
+     336   01:036E  FD 21 1D 81         	ld		iy,HexToString_Dest
+     337   01:0372                      
+     338   01:0372  21 00 00            	ld		hl,0
+     339   01:0375  FD 75 00            	ld		(iy+0),l
+     340   01:0378  FD 74 01            	ld		(iy+1),h
+     341   01:037B  FD 75 02            	ld		(iy+2),l
+     342   01:037E  FD 74 03            	ld		(iy+3),h
+     343   01:0381                      
+     344   01:0381                      	; A
+     345   01:0381  DD 7E 01            	ld		a,(ix+1)
+     346   01:0384  E6 F0               	and		$F0		; now we only have A
+     347   01:0386  CB 3F               	srl		a
+     348   01:0388  CB 3F               	srl		a
+     349   01:038A  CB 3F               	srl		a
+     350   01:038C  CB 3F               	srl		a
+     351   01:038E  C6 90               	add  	a,$90
+     352   01:0390  27                  	daa
+     353   01:0391  CE 40               	adc  	a,$40
+     354   01:0393  27                  	daa
+     355   01:0394  FD 77 00            	ld		(iy+0),a
+     356   01:0397                      
+     357   01:0397                      	; B
+     358   01:0397  DD 7E 01            	ld		a,(ix+1)
+     359   01:039A  E6 0F               	and		$0F		; now we only have B
+     360   01:039C  C6 90               	add  	a,$90
+     361   01:039E  27                  	daa
+     362   01:039F  CE 40               	adc  	a,$40
+     363   01:03A1  27                  	daa
+     364   01:03A2  FD 77 01            	ld		(iy+1),a
+     365   01:03A5                      
+     366   01:03A5                      	; C
+     367   01:03A5  DD 7E 00            	ld		a,(ix)
+     368   01:03A8  E6 F0               	and		$F0		; now we only have C
+     369   01:03AA  CB 3F               	srl		a	
+     370   01:03AC  CB 3F               	srl		a
+     371   01:03AE  CB 3F               	srl 	a
+     372   01:03B0  CB 3F               	srl 	a
+     373   01:03B2  C6 90               	add  	a,$90
+     374   01:03B4  27                  	daa
+     375   01:03B5  CE 40               	adc  	a,$40
+     376   01:03B7  27                  	daa
+     377   01:03B8  FD 77 02            	ld		(iy+2),a
+     378   01:03BB                      
+     379   01:03BB                      	; D
+     380   01:03BB  DD 7E 00            	ld		a,(ix)
+     381   01:03BE  E6 0F               	and		$0F		; now we only have D
+     382   01:03C0  C6 90               	add  	a,$90
+     383   01:03C2  27                  	daa
+     384   01:03C3  CE 40               	adc  	a,$40
+     385   01:03C5  27                  	daa
+     386   01:03C6  FD 77 03            	ld		(iy+3),a
+     387   01:03C9                      
+     388   01:03C9  3E 00               	ld		a,0
+     389   01:03CB  FD 77 04            	ld		(iy+4),a
+     390   01:03CE                      
+     391   01:03CE  C9                  	ret
+     392   01:03CF                      
+     393   01:03CF                      ;;;
+     394   01:03CF                      ConvertHex8ToString:
+     395   01:03CF                      	; Convert the value in HexToString_Source to ASCII characters.
+     396   01:03CF                      	; A
+     397   01:03CF  FD 21 1D 81         	ld		iy,HexToString_Dest
+     398   01:03D3  DD 21 19 81         	ld		ix,HexToString_Source
+     399   01:03D7                      
+     400   01:03D7  21 00 00            	ld		hl,0
+     401   01:03DA  FD 75 00            	ld		(iy+0),l
+     402   01:03DD  FD 74 01            	ld		(iy+1),h
+     403   01:03E0  FD 75 02            	ld		(iy+2),l
+     404   01:03E3  FD 74 03            	ld		(iy+3),h
+     405   01:03E6                      
+     406   01:03E6  DD 7E 00            	ld		a,(ix)
+     407   01:03E9  E6 F0               	and		$F0		; now we only have A
+     408   01:03EB  CB 3F               	srl		a	
+     409   01:03ED  CB 3F               	srl		a
+     410   01:03EF  CB 3F               	srl 	a
+     411   01:03F1  CB 3F               	srl 	a
+     412   01:03F3  C6 90               	add  	a,$90
+     413   01:03F5  27                  	daa
+     414   01:03F6  CE 40               	adc  	a,$40
+     415   01:03F8  27                  	daa
+     416   01:03F9  FD 77 00            	ld		(iy+0),a
+     417   01:03FC                      
+     418   01:03FC                      	; B
+     419   01:03FC  DD 7E 00            	ld		a,(ix)
+     420   01:03FF  E6 0F               	and		$0F		; now we only have B
+     421   01:0401  C6 90               	add  	a,$90
+     422   01:0403  27                  	daa
+     423   01:0404  CE 40               	adc  	a,$40
+     424   01:0406  27                  	daa
+     425   01:0407  FD 77 01            	ld		(iy+1),a
+     426   01:040A                      
+     427   01:040A  3E 00               	ld		a,0
+     428   01:040C  FD 77 02            	ld		(iy+2),a
+     429   01:040F                      
+     430   01:040F  C9                  	ret
+     431   01:0410                      
+     432   01:0410                      ;;;;;;;;
+     433   01:0410                      CmdDebugOutput:
+     434   01:0410  11 77 07            	ld		de,strDbgCmd
+     435   01:0413  0E 01               	ld		c,B_STROUT
+     436   01:0415                      	DoBIOS
+     436   01:0415  E7                >   rst $20
+     437   01:0416  DD 2A 2D 81         	ld		ix,(MON_Command)
+     438   01:041A  DD 5D               	ld		e,ixl
+     439   01:041C  0E 00               	ld		c,B_CONOUT
+     440   01:041E                      	DoBIOS
+     440   01:041E  E7                >   rst $20
+     441   01:041F  DD 5C               	ld		e,ixh
+     442   01:0421  0E 00               	ld		c,B_CONOUT
+     443   01:0423                      	DoBIOS
+     443   01:0423  E7                >   rst $20
+     444   01:0424  11 3A 07            	ld		de,strCRLF
+     445   01:0427  0E 01               	ld		c,B_STROUT
+     446   01:0429                      	DoBIOS
+     446   01:0429  E7                >   rst $20
+     447   01:042A                      
+     448   01:042A  11 81 07            	ld		de,strDbgArg
+     449   01:042D  0E 01               	ld		c,B_STROUT
+     450   01:042F                      	DoBIOS
+     450   01:042F  E7                >   rst $20
+     451   01:0430  11 00 88            	ld		de,MON_Argument1
+     452   01:0433  0E 01               	ld		c,B_STROUT
+     453   01:0435                      	DoBIOS
+     453   01:0435  E7                >   rst $20
+     454   01:0436  11 3A 07            	ld		de,strCRLF
+     455   01:0439  0E 01               	ld		c,B_STROUT
+     456   01:043B                      	DoBIOS
+     456   01:043B  E7                >   rst $20
+     457   01:043C  11 81 07            	ld		de,strDbgArg
+     458   01:043F  0E 01               	ld		c,B_STROUT
+     459   01:0441                      	DoBIOS
+     459   01:0441  E7                >   rst $20
+     460   01:0442  11 10 88            	ld		de,MON_Argument2
+     461   01:0445  0E 01               	ld		c,B_STROUT
+     462   01:0447                      	DoBIOS
+     462   01:0447  E7                >   rst $20
+     463   01:0448  11 3A 07            	ld		de,strCRLF
+     464   01:044B  0E 01               	ld		c,B_STROUT
+     465   01:044D                      	DoBIOS
+     465   01:044D  E7                >   rst $20
+     466   01:044E  11 81 07            	ld		de,strDbgArg
+     467   01:0451  0E 01               	ld		c,B_STROUT
+     468   01:0453                      	DoBIOS
+     468   01:0453  E7                >   rst $20
+     469   01:0454  11 20 88            	ld		de,MON_Argument3
+     470   01:0457  0E 01               	ld		c,B_STROUT
+     471   01:0459                      	DoBIOS
+     471   01:0459  E7                >   rst $20
+     472   01:045A  11 3A 07            	ld		de,strCRLF
+     473   01:045D  0E 01               	ld		c,B_STROUT
+     474   01:045F                      	DoBIOS
+     474   01:045F  E7                >   rst $20
+     475   01:0460  11 81 07            	ld		de,strDbgArg
+     476   01:0463  0E 01               	ld		c,B_STROUT
+     477   01:0465                      	DoBIOS
+     477   01:0465  E7                >   rst $20
+     478   01:0466  11 30 88            	ld		de,MON_Argument4
+     479   01:0469  0E 01               	ld		c,B_STROUT
+     480   01:046B                      	DoBIOS
+     480   01:046B  E7                >   rst $20
+     481   01:046C  11 3A 07            	ld		de,strCRLF
+     482   01:046F  0E 01               	ld		c,B_STROUT
+     483   01:0471                      	DoBIOS
+     483   01:0471  E7                >   rst $20
+     484   01:0472                      
+     485   01:0472  C9                  	ret
+     486   01:0473                      
+     487   01:0473                      ;;;;;;;;;;;;;;;;;;
+     488   01:0473                      GetArgument:
+     489   01:0473                      	; Clear the 4 argument buffers.
+     490   01:0473  06 40               	ld		b,16*4
+     491   01:0475  3E 00               	ld		a,0
+     492   01:0477  21 00 88            	ld		hl,MON_Argument1
+     493   01:047A                      .loop:
+     494   01:047A  36 00               	ld		(hl),0
+     495   01:047C  23                  	inc		hl
+     496   01:047D  10 FB               	djnz	.loop
+     497   01:047F                      
+     498   01:047F                      	; Copy from buffer_Input+MON_ArgStartsAt into the argument buffers.
+     499   01:047F                      	; Max 4 space-delimited arguments.
+     500   01:047F  11 00 88            	ld		de,MON_Argument1	; <-- MUST BE PAGE ALIGNED FOR POINTER MATH TO WORK!
+     501   01:0482  21 02 80            	ld		hl,buffer_Input
+     502   01:0485  DD 21 00 88         	ld		ix,MON_Argument1
+     503   01:0489                      
+     504   01:0489  3A 31 81            	ld		a,(MON_ArgStartsAt)
+     505   01:048C  4F                  	ld		c,a
+     506   01:048D  06 00               	ld		b,0		; BC is now ArgStartsAt
+     507   01:048F  09                  	add		hl,bc	; And HL is now the beginning of the arguments.
+     508   01:0490                      
+     509   01:0490                      	; HL is now the beginning of the argument.
+     510   01:0490                      	; DE is now the destination address.
+     511   01:0490                      .ArgumentCopyLoop:
+     512   01:0490                      	; Copy until we find a SPC. A CR/LF advances to the next argument buffer.
+     513   01:0490                      	; Only 4 arguments are supported.
+     514   01:0490  7E                  	ld		a,(hl)
+     515   01:0491  23                  	inc		hl
+     516   01:0492  FE 0D               	cp		$0D
+     517   01:0494  28 13               	jr		z,.done
+     518   01:0496  FE 20               	cp		$20
+     519   01:0498  20 0B               	jr		nz,.copychar
+     520   01:049A                      	
+     521   01:049A                      	; Advance to the next argument.
+     522   01:049A  DD 7D               	ld		a,ixl
+     523   01:049C  C6 10               	add		a,16
+     524   01:049E  5F                  	ld		e,a
+     525   01:049F  C6 10               	add		a,16
+     526   01:04A1  DD 6F               	ld		ixl,a
+     527   01:04A3                      
+     528   01:04A3  18 EB               	jr		.ArgumentCopyLoop
+     529   01:04A5                      
+     530   01:04A5                      .copychar:
+     531   01:04A5  12                  	ld		(de),a
+     532   01:04A6  13                  	inc		de
+     533   01:04A7  10 E7               	djnz	.ArgumentCopyLoop
+     534   01:04A9                      
+     535   01:04A9                      .done:
+     536   01:04A9  C9                  	ret
+     537   01:04AA                      
+     538   01:04AA                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     539   01:04AA                      ClearInputBuffer:
+     540   01:04AA  3E 00               	ld		a,0
+     541   01:04AC  21 02 80            	ld		hl,buffer_Input
+     542   01:04AF                      .clear:
+     543   01:04AF  36 00               	ld		(hl),0
+     544   01:04B1  23                  	inc		hl
+     545   01:04B2  3C                  	inc		a
+     546   01:04B3  FE FF               	cp		$FF
+     547   01:04B5  20 F8               	jr		nz,.clear
+     548   01:04B7  C9                  	ret
+     549   01:04B8                      
+     550   01:04B8                      	include "commands/memory.asm"
+       1.  01:04B8                      ; Monitor's M command - memory output
+       2.  01:04B8                      Monitor_CMD_Memory:
+       3.  01:04B8                      	; Load the arguments into MemoryOutputStartAddr/MemoryOutputEndAddr.
+       4.  01:04B8                          
+       5.  01:04B8                          ; Beginning address
+       6.  01:04B8  2A 00 88            	ld		hl,(MON_Argument1+0)
+       7.  01:04BB  22 01 81            	ld		(StringToHex_Source+0),hl
+       8.  01:04BE  2A 02 88            	ld		hl,(MON_Argument1+2)
+       9.  01:04C1  22 03 81            	ld		(StringToHex_Source+2),hl
+      10.  01:04C4                      
+      11.  01:04C4  CD B1 02            	call	ConvertStringToHex16
+      12.  01:04C7  2A 11 81            	ld		hl,(StringToHex_Dest)
+      13.  01:04CA  22 21 81            	ld		(MemoryOutputStartAddr),hl
+      14.  01:04CD                      
+      15.  01:04CD                      	; Ending address
+      16.  01:04CD  2A 10 88            	ld		hl,(MON_Argument2)
+      17.  01:04D0  22 01 81            	ld		(StringToHex_Source+0),hl
+      18.  01:04D3  2A 12 88            	ld		hl,(MON_Argument2+2)
+      19.  01:04D6  22 03 81            	ld		(StringToHex_Source+2),hl
+      20.  01:04D9  CD B1 02            	call	ConvertStringToHex16
+      21.  01:04DC                      
+      22.  01:04DC  2A 11 81            	ld		hl,(StringToHex_Dest)
+      23.  01:04DF  22 25 81            	ld		(MemoryOutputEndAddr),hl
+      24.  01:04E2                      
+      25.  01:04E2                          ; Debugging address conversion
+      26.  01:04E2                          ; ld      hl,(MemoryOutputStartAddr)
+      27.  01:04E2                          ; ld      (HexToString_Source),hl
+      28.  01:04E2                          ; call    ConvertHex16ToString
+      29.  01:04E2                          ; ld		de,HexToString_Dest
+      30.  01:04E2                      	; ld		c,B_STROUT
+      31.  01:04E2                      	; DoBIOS
+      32.  01:04E2                      	; ld		e,"-"
+      33.  01:04E2                      	; ld		c,B_CONOUT
+      34.  01:04E2                      	; DoBIOS
+      35.  01:04E2                          ; ld      hl,(StringToHex_Dest)
+      36.  01:04E2                          ; ld      (HexToString_Source),hl
+      37.  01:04E2                          ; call    ConvertHex16ToString
+      38.  01:04E2                          ; ld		de,HexToString_Dest
+      39.  01:04E2                      	; ld		c,B_STROUT
+      40.  01:04E2                      	; DoBIOS
+      41.  01:04E2                      
+      42.  01:04E2  CD 27 05            	call	Monitor_DoMemoryOutput
+      43.  01:04E5                      
+      44.  01:04E5  C9                  	ret
+      45.  01:04E6                      
+      46.  01:04E6                      Monitor_DoMemoryLabel:
+      47.  01:04E6                      	; Formatting: start address
+      48.  01:04E6  2A 23 81            	ld		hl,(MemoryOutputCurAddr)
+      49.  01:04E9  22 19 81            	ld		(HexToString_Source),hl
+      50.  01:04EC  CD 6A 03            	call	ConvertHex16ToString
+      51.  01:04EF  11 1D 81            	ld		de,HexToString_Dest
+      52.  01:04F2  0E 01               	ld		c,B_STROUT
+      53.  01:04F4                      	DoBIOS
+      53.  01:04F4  E7                >   rst $20
+      54.  01:04F5  1E 3A               	ld		e,":"
+      55.  01:04F7  0E 00               	ld		c,B_CONOUT
+      56.  01:04F9                      	DoBIOS
+      56.  01:04F9  E7                >   rst $20
+      57.  01:04FA  1E 20               	ld		e," "
+      58.  01:04FC  0E 00               	ld		c,B_CONOUT
+      59.  01:04FE                      	DoBIOS
+      59.  01:04FE  E7                >   rst $20
+      60.  01:04FF  C9                  	ret
+      61.  01:0500                      
+      62.  01:0500                      Monitor_PrintBytes:
+      63.  01:0500                      	; Input:
+      64.  01:0500                      	; B  - how many bytes to dump
+      65.  01:0500                      	; IX - pointer to start of memory area to dump
+      66.  01:0500  C5                  	push	bc
+      67.  01:0501                      
+      68.  01:0501  DD 7E 00            	ld		a,(ix)						; A has a memory byte
+      69.  01:0504  32 19 81            	ld		(HexToString_Source),a		
+      70.  01:0507  DD E5               	push	ix
+      71.  01:0509  CD CF 03            	call	ConvertHex8ToString			; Convert it to ASCII
+      72.  01:050C                      
+      73.  01:050C                      	; Print two characters of output and a space
+      74.  01:050C  3A 1D 81            	ld		a,(HexToString_Dest)
+      75.  01:050F  5F                  	ld		e,a
+      76.  01:0510  0E 00               	ld		c,B_CONOUT
+      77.  01:0512                      	DoBIOS								
+      77.  01:0512  E7                >   rst $20
+      78.  01:0513  3A 1E 81            	ld		a,(HexToString_Dest+1)
+      79.  01:0516  5F                  	ld		e,a
+      80.  01:0517  0E 00               	ld		c,B_CONOUT
+      81.  01:0519                      	DoBIOS
+      81.  01:0519  E7                >   rst $20
+      82.  01:051A  1E 20               	ld		e," "
+      83.  01:051C  0E 00               	ld		c,B_CONOUT
+      84.  01:051E                      	DoBIOS
+      84.  01:051E  E7                >   rst $20
+      85.  01:051F                      
+      86.  01:051F                      	; Advance the memory source pointer. Continue until B == 0.
+      87.  01:051F  DD E1               	pop		ix
+      88.  01:0521  DD 23               	inc		ix
+      89.  01:0523                      
+      90.  01:0523  C1                  	pop		bc
+      91.  01:0524  10 DA               	djnz	Monitor_PrintBytes
+      92.  01:0526                      
+      93.  01:0526  C9                  	ret
+      94.  01:0527                      
+      95.  01:0527                      Monitor_DoMemoryOutput:
+      96.  01:0527  2A 21 81            	ld		hl,(MemoryOutputStartAddr)
+      97.  01:052A  22 23 81            	ld		(MemoryOutputCurAddr),hl
+      98.  01:052D                      
+      99.  01:052D  CD E6 04            	call	Monitor_DoMemoryLabel
+     100.  01:0530                      
+     101.  01:0530                      	; Output 16 memory bytes
+     102.  01:0530  2A 25 81            	ld		hl,(MemoryOutputEndAddr)
+     103.  01:0533  ED 4B 21 81         	ld		bc,(MemoryOutputStartAddr)
+     104.  01:0537  37                  	scf
+     105.  01:0538  3F                  	ccf		; Clear carry flag to get the proper subtraction result.
+     106.  01:0539  23                  	inc		hl	
+     107.  01:053A  ED 42               	sbc		hl,bc
+     108.  01:053C  22 27 81            	ld		(MemoryOutputBytesLeft),hl
+     109.  01:053F                      
+     110.  01:053F  DD 2A 21 81         	ld		ix,(MemoryOutputStartAddr)
+     111.  01:0543  06 10               	ld		b,16
+     112.  01:0545  CD 00 05            	call	Monitor_PrintBytes
+     113.  01:0548                      
+     114.  01:0548                      EndMemoryLine:
+     115.  01:0548  11 3A 07            	ld		de,strCRLF
+     116.  01:054B  0E 01               	ld		c,B_STROUT
+     117.  01:054D                      	DoBIOS
+     117.  01:054D  E7                >   rst $20
+     118.  01:054E                      
+     119.  01:054E  2A 27 81            	ld		hl,(MemoryOutputBytesLeft)
+     120.  01:0551  37                  	scf
+     121.  01:0552  01 10 00            	ld		bc,16
+     122.  01:0555  ED 42               	sbc		hl,bc	; Subtract the 16 bytes we already read.
+     123.  01:0557  FA 76 05            	jp		m,.Done	; End if we're out of memory to write.
+     124.  01:055A  22 27 81            	ld		(MemoryOutputBytesLeft),hl
+     125.  01:055D                      
+     126.  01:055D  01 10 00            	ld		bc,16
+     127.  01:0560  2A 23 81            	ld		hl,(MemoryOutputCurAddr)
+     128.  01:0563  09                  	add		hl,bc						; Advance start pointer
+     129.  01:0564  22 23 81            	ld		(MemoryOutputCurAddr),hl	
+     130.  01:0567  CD E6 04            	call	Monitor_DoMemoryLabel
+     131.  01:056A                      
+     132.  01:056A  06 10               	ld		b,16						; Another 16 bytes
+     133.  01:056C  DD 2A 23 81         	ld		ix,(MemoryOutputCurAddr)
+     134.  01:0570  CD 00 05            	call	Monitor_PrintBytes
+     135.  01:0573  C3 48 05            	jp		EndMemoryLine
+     136.  01:0576                      
+     137.  01:0576                      .Done:
+     138.  01:0576  C9                  	ret
+     551   01:0577                      	include "commands/go.asm"
+       1.  01:0577                      ; Monitor's G command - Go
+       2.  01:0577                      ; JP to an address.
+       3.  01:0577                      Monitor_CMD_Go:
+       4.  01:0577                          ; Beginning address
+       5.  01:0577  2A 00 88            	ld		hl,(MON_Argument1+0)
+       6.  01:057A  22 01 81            	ld		(StringToHex_Source+0),hl
+       7.  01:057D  2A 02 88            	ld		hl,(MON_Argument1+2)
+       8.  01:0580  22 03 81            	ld		(StringToHex_Source+2),hl
+       9.  01:0583                      
+      10.  01:0583  CD B1 02            	call	ConvertStringToHex16
+      11.  01:0586  2A 11 81            	ld		hl,(StringToHex_Dest)
+      12.  01:0589  E9                      jp      (hl)
+      13.  01:058A                      
+      14.  01:058A  C9                  	ret
+     552   01:058B                      	include "commands/upload.asm"
+       1.  01:058B                      ; Monitor's U command
+       2.  01:058B                      ; Upload a HEX file somewhere in memory
+       3.  01:058B                      Monitor_CMD_Upload:
+       4.  01:058B                          ; Each HEX record contains the destination address.
+       5.  01:058B                      
+       6.  01:058B                          ; Base address of an upload is 9000h.
+       7.  01:058B  11 A4 07            	ld		de,STR_HEX_ReadyToReceive
+       8.  01:058E  0E 01               	ld		c,B_STROUT
+       9.  01:0590                      	DoBIOS
+       9.  01:0590  E7                >   rst $20
+      10.  01:0591                      
+      11.  01:0591                          ; Receive one record.
+      12.  01:0591  CD D2 05                call    HEX_ReceiveRecord
+      13.  01:0594                      
+      14.  01:0594                          ; Is it an EOF?
+      15.  01:0594  3A 78 81                ld      a,(HEX_RecordType)
+      16.  01:0597  FE 01                   cp      1    
+      17.  01:0599  28 06                   jr      z,.Done
+      18.  01:059B  00                      nop
+      19.  01:059C                      
+      20.  01:059C                          ; Copy it to its destination.
+      21.  01:059C  CD A2 05                call    HEX_CopyRecord
+      22.  01:059F  18 EA                   jr      Monitor_CMD_Upload
+      23.  01:05A1                      
+      24.  01:05A1                      .Done:
+      25.  01:05A1  C9                  	ret
+      26.  01:05A2                      
+      27.  01:05A2                      HEX_CopyRecord:
+      28.  01:05A2  2A 76 81                ld      hl,(HEX_Address)
+      29.  01:05A5  11 00 90                ld      de,$9000
+      30.  01:05A8  19                      add     hl,de
+      31.  01:05A9  54                      ld      d,h
+      32.  01:05AA  5D                      ld      e,l
+      33.  01:05AB  21 7A 81                ld      hl,HEX_RecordData
+      34.  01:05AE  3A 73 81                ld      a,(HEX_BytesInRecord)
+      35.  01:05B1  4F                      ld      c,a
+      36.  01:05B2  06 00                   ld      b,0
+      37.  01:05B4  ED B0                   ldir
+      38.  01:05B6  C9                      ret
+      39.  01:05B7                      
+      40.  01:05B7                      HEX_GetASCIIByteValue:
+      41.  01:05B7                          ; Get two ASCII characters, convert them to a byte value, and return it in A.
+      42.  01:05B7  0E 02                   ld		c,B_CONIN
+      43.  01:05B9                          DoBIOS
+      43.  01:05B9  E7                >   rst $20
+      44.  01:05BA  32 01 81            	ld		(StringToHex_Source+0),a
+      45.  01:05BD  0E 02                   ld		c,B_CONIN
+      46.  01:05BF                          DoBIOS
+      46.  01:05BF  E7                >   rst $20
+      47.  01:05C0  32 02 81            	ld		(StringToHex_Source+1),a
+      48.  01:05C3                      
+      49.  01:05C3  CD 68 02            	call	ConvertStringToHex8
+      50.  01:05C6  3A 11 81            	ld		a,(StringToHex_Dest)
+      51.  01:05C9  C9                      ret
+      52.  01:05CA                      
+      53.  01:05CA                      HEX_AwaitStartCode:
+      54.  01:05CA                          ; Listen for the start code.
+      55.  01:05CA  0E 02                   ld		c,B_CONIN
+      56.  01:05CC                          DoBIOS
+      56.  01:05CC  E7                >   rst $20
+      57.  01:05CD                      
+      58.  01:05CD  FE 3A                   cp      ":"
+      59.  01:05CF  20 F9                   jr      nz,HEX_AwaitStartCode
+      60.  01:05D1                      
+      61.  01:05D1                          ; Got the start code of a HEX.
+      62.  01:05D1  C9                      ret
+      63.  01:05D2                      
+      64.  01:05D2                      HEX_ReceiveRecord:
+      65.  01:05D2                          ; Receive a HEX record.
+      66.  01:05D2                      
+      67.  01:05D2                          ; Set up our variables.
+      68.  01:05D2  3E 00                   ld      a,0
+      69.  01:05D4  32 72 81                ld      (HEX_GotStartCode),a
+      70.  01:05D7  32 73 81                ld      (HEX_BytesInRecord),a
+      71.  01:05DA                      
+      72.  01:05DA  CD CA 05                call    HEX_AwaitStartCode
+      73.  01:05DD  21 72 81                ld      hl,HEX_GotStartCode
+      74.  01:05E0  34                      inc     (hl)
+      75.  01:05E1                      
+      76.  01:05E1  11 BC 07                ld		de,STR_HEX_Debug_GotStart
+      77.  01:05E4  0E 01               	ld		c,B_STROUT
+      78.  01:05E6                      	DoBIOS
+      78.  01:05E6  E7                >   rst $20
+      79.  01:05E7                      
+      80.  01:05E7                          ; Next up is the number of bytes contained in this record.
+      81.  01:05E7  CD B7 05                call    HEX_GetASCIIByteValue
+      82.  01:05EA  32 73 81                ld      (HEX_BytesInRecord),a
+      83.  01:05ED                      
+      84.  01:05ED  11 CD 07            	ld		de,STR_HEX_Debug_GotLength
+      85.  01:05F0  0E 01               	ld		c,B_STROUT
+      86.  01:05F2                      	DoBIOS
+      86.  01:05F2  E7                >   rst $20
+      87.  01:05F3                      
+      88.  01:05F3                          ; Then a big-endian address.
+      89.  01:05F3  CD B7 05                call    HEX_GetASCIIByteValue
+      90.  01:05F6  67                      ld      h,a
+      91.  01:05F7  E5                      push    hl
+      92.  01:05F8  CD B7 05                call    HEX_GetASCIIByteValue
+      93.  01:05FB  E1                      pop     hl
+      94.  01:05FC  6F                      ld      l,a
+      95.  01:05FD  22 76 81                ld      (HEX_Address),hl
+      96.  01:0600                      
+      97.  01:0600  11 DE 07                ld		de,STR_HEX_Debug_GotAddr
+      98.  01:0603  0E 01               	ld		c,B_STROUT
+      99.  01:0605                      	DoBIOS
+      99.  01:0605  E7                >   rst $20
+     100.  01:0606                      
+     101.  01:0606                          ; Then the record type.
+     102.  01:0606  CD B7 05                call    HEX_GetASCIIByteValue
+     103.  01:0609  32 78 81                ld      (HEX_RecordType),a
+     104.  01:060C                      
+     105.  01:060C  11 F0 07            	ld		de,STR_HEX_Debug_GotType
+     106.  01:060F  0E 01               	ld		c,B_STROUT
+     107.  01:0611                      	DoBIOS
+     107.  01:0611  E7                >   rst $20
+     108.  01:0612                      
+     109.  01:0612                          ; Then the record data itself.
+     110.  01:0612  3A 73 81                ld      a,(HEX_BytesInRecord)
+     111.  01:0615  FE 00                   cp      0
+     112.  01:0617  28 15                   jr      z,HEX_GetChecksum
+     113.  01:0619                      
+     114.  01:0619  47                      ld      b,a
+     115.  01:061A  21 7A 81                ld      hl,HEX_RecordData
+     116.  01:061D                      
+     117.  01:061D                      ReceiveLoop:
+     118.  01:061D  C5                      push    bc
+     119.  01:061E  E5                      push    hl
+     120.  01:061F                      
+     121.  01:061F  CD B7 05                call    HEX_GetASCIIByteValue
+     122.  01:0622                          
+     123.  01:0622  E1                      pop     hl 
+     124.  01:0623  C1                      pop     bc
+     125.  01:0624                      
+     126.  01:0624  77                      ld      (hl),a
+     127.  01:0625  23                      inc     hl          ; Advance receive buffer
+     128.  01:0626  10 F5                   djnz    ReceiveLoop ; Loop until receive count is 0
+     129.  01:0628                      
+     130.  01:0628  11 FF 07            	ld		de,STR_HEX_Debug_GotData
+     131.  01:062B  0E 01               	ld		c,B_STROUT
+     132.  01:062D                      	DoBIOS
+     132.  01:062D  E7                >   rst $20
+     133.  01:062E                      
+     134.  01:062E                      HEX_GetChecksum:
+     135.  01:062E                          ; And finally the checksum.
+     136.  01:062E  CD B7 05                call    HEX_GetASCIIByteValue
+     137.  01:0631  32 79 81                ld      (HEX_Checksum),a
+     138.  01:0634                      
+     139.  01:0634  11 0E 08            	ld		de,STR_HEX_Debug_GotChecksum
+     140.  01:0637  0E 01               	ld		c,B_STROUT
+     141.  01:0639                      	DoBIOS
+     141.  01:0639  E7                >   rst $20
+     142.  01:063A                      
+     143.  01:063A  C9                      ret
+     144.  01:063B                      
+     145.  01:063B  (02)                    PAGE 2
+     146.  02:8172  00                  HEX_GotStartCode:   db 0   ; Did we get the start code?
+     147.  02:8173  00                  HEX_BytesInRecord:  db 0   ; How many bytes does this record contain?
+     148.  02:8174  00 00               HEX_BaseAddress:    dw 0   ; Base address to write to. The record's offset is added to it.
+     149.  02:8176                      
+     150.  02:8176                      ; The record itself.
+     151.  02:8176  00 00               HEX_Address:        dw 0   ; WORD  - Destination address, always big-endian.
+     152.  02:8178  00                  HEX_RecordType:     db 0   ; BYTE  - Record type.
+     153.  02:8179  00                  HEX_Checksum:       db 0   ; BYTE  - Checksum of the record.
+     154.  02:817A  00 (64)             HEX_RecordData:     ds 64  ; ARRAY - The record's contents.
+     155.  02:81BA                      
+     156.  02:81BA  (01)                    PAGE 1
+     157.  01:07A4                      STR_HEX_ReadyToReceive:     db "Ready to receive HEX.",13,10,0
+     157.  01:07A4  52 65 61 64 79 20 74 6F 20 72 65 63 65 69 76 65 
+     157.  01:07B4  20 48 45 58 2E 0D 0A 00 
+     158.  01:07BC                      STR_HEX_Debug_GotStart:     db "Got start code",13,10,0
+     158.  01:07BC  47 6F 74 20 73 74 61 72 74 20 63 6F 64 65 0D 0A 
+     158.  01:07CC  00 
+     159.  01:07CD                      STR_HEX_Debug_GotLength:    db "Got rec length",13,10,0
+     159.  01:07CD  47 6F 74 20 72 65 63 20 6C 65 6E 67 74 68 0D 0A 
+     159.  01:07DD  00 
+     160.  01:07DE                      STR_HEX_Debug_GotAddr:      db "Got rec address",13,10,0
+     160.  01:07DE  47 6F 74 20 72 65 63 20 61 64 64 72 65 73 73 0D 
+     160.  01:07EE  0A 00 
+     161.  01:07F0                      STR_HEX_Debug_GotType:      db "Got rec type",13,10,0
+     161.  01:07F0  47 6F 74 20 72 65 63 20 74 79 70 65 0D 0A 00 
+     162.  01:07FF                      STR_HEX_Debug_GotData:      db "Got rec data",13,10,0
+     162.  01:07FF  47 6F 74 20 72 65 63 20 64 61 74 61 0D 0A 00 
+     163.  01:080E                      STR_HEX_Debug_GotChecksum:  db "Got rec checksum",13,10,0
+     163.  01:080E  47 6F 74 20 72 65 63 20 63 68 65 63 6B 73 75 6D 
+     163.  01:081E  0D 0A 00 
+     553   01:0821                      
+     554   01:0821  (01)                	PAGE 1
+     555   01:0821                      
+     556   01:0821                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     557   01:0821                      Monitor_InterpretCommand:
+     558   01:0821                      	; The Z80 version of a switch statement?
+     559   01:0821  3A 2D 81            	ld		a,(MON_Command)
+     560   01:0824                      
+     561   01:0824                      	; JP to the command that matches. 
+     562   01:0824                      	; If no command matches, fall through to an error.
+     563   01:0824                      	; The command's RET will return to *this function's caller*
+     564   01:0824                      	; i.e. the command loop.
+     565   01:0824                      
+     566   01:0824                      	; Command: Memory
+     567   01:0824  FE 4D               	cp		"M"
+     568   01:0826  CA B8 04            	jp		z,Monitor_CMD_Memory
+     569   01:0829                      
+     570   01:0829  FE 47               	cp		"G"
+     571   01:082B  CA 77 05            	jp		z,Monitor_CMD_Go
+     572   01:082E                      
+     573   01:082E  FE 55               	cp		"U"
+     574   01:0830  CA 8B 05            	jp		z,Monitor_CMD_Upload
+     575   01:0833                      
+     576   01:0833  11 8B 07            	ld		de,strCmdUnknown
+     577   01:0836  0E 01               	ld		c,B_STROUT
+     578   01:0838                      	DoBIOS
+     578   01:0838  E7                >   rst $20
+     579   01:0839  11 3A 07            	ld		de,strCRLF
+     580   01:083C  0E 01               	ld		c,B_STROUT
+     581   01:083E                      	DoBIOS
+     581   01:083E  E7                >   rst $20
+     582   01:083F                      
+     583   01:083F  C9                  	ret
+     584   01:0840                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     585   01:0840                      
+     586   01:0840  (02)                	PAGE 2	; Data section in RAM. Assume 32K of RAM on an RC2014.
+     587   02:8000                      
+     588   02:8000                      buffer_base:
+     589   02:8000  00                  buffer_len:				db 0
+     590   02:8001  00                  buffer_inputsize:		db 0
+     591   02:8002  00 (255)            buffer_Input:			ds	255	; 255 bytes of input storage
+     592   02:8101                      
+     593   02:8101                      ;;;
+     594   02:8101  00 (16)             StringToHex_Source:		ds 16
+     595   02:8111  00 (8)              StringToHex_Dest:		ds 8
+     596   02:8119                      
+     597   02:8119  00 (4)              HexToString_Source:		ds	4
+     598   02:811D  00 (4)              HexToString_Dest:		ds 4
+     599   02:8121                      
+     600   02:8121                      ;;;
+     601   02:8121  00 00               MemoryOutputStartAddr:	dw 0
+     602   02:8123  00 00               MemoryOutputCurAddr:	dw 0
+     603   02:8125  00 00               MemoryOutputEndAddr:	dw 0
+     604   02:8127  00 00               MemoryOutputBytesLeft:	dw 0
+     605   02:8129                      
+     606   02:8129                      ;;;
+     607   02:8129  00 00               HEX_DestinationAddr:	dw 0
+     608   02:812B                      
+     609   02:812B                      ;;;;;;;;;;;;;;;;;;;
+     610   02:812B                      ; ROM monitor data stuff
+     611   02:812B  00 00               MON_PreviousCmd:	db		0,0
+     612   02:812D  00 00               MON_Command:		db		0,0
+     613   02:812F                      
+     614   02:812F  00 00               MON_ArgDestPtr:		dw		0
+     615   02:8131  00                  MON_ArgStartsAt: 	db		0
+     616   02:8132                      	org $8800			; ensure these are page-aligned
+     617   02:8800  00 (16)             MON_Argument1:		ds		16
+     618   02:8810  00 (16)             MON_Argument2:		ds		16
+     619   02:8820  00 (16)             MON_Argument3:		ds		16
+     620   02:8830  00 (16)             MON_Argument4:		ds		16
+
+    LABELS
+-------------------------------------------------
+00:00000000   B_CONOUT
+00:00000001   B_STROUT
+00:00000002   B_CONIN
+00:00000003 X B_CONSTAT
+00:00000004   B_STRIN
+01:0000063B   BIOS_FnTable
+01:00000645   rc2014_getc
+01:00000646   waitch
+01:00000653 X rc2014_putc
+01:00000656   rc2014_pollc
+01:00000660   rc2014_sio_TX
+01:00000661   rc2014_sio_TX.txb
+01:0000066B   rc2014_sio_init
+01:0000069A   B_Dispatch
+01:000006AF   B_Conout
+01:000006B4   B_Strout
+01:000006B4   B_Strout.loop1
+01:000006C2   B_Strout.loop2
+01:000006C3   B_Conin
+01:000006C8   B_Constat
+01:000006CD   B_Strin
+01:000006D8   B_Strin.begin
+01:000006DE X B_Strin.check2
+01:000006E3   B_Strin.handlebs
+01:0000070A   B_Strin.charout
+01:00000711 X B_Strin.write
+01:00000738   strPrompt
+01:0000073A   strCRLF
+01:0000073D   HelloWorld
+01:00000769 X strYouEntered
+01:00000777   strDbgCmd
+01:00000781   strDbgArg
+01:0000078B   strCmdUnknown
+01:00000081   SIOA_D
+01:00000080   SIOA_C
+01:00000083 X SIOB_D
+01:00000082   SIOB_C
+00:00000000 X RST00
+00:00000008 X RST08
+00:00000010 X RST10
+00:00000018 X RST18
+00:00000020 X RST20
+00:00000028 X RST28
+00:0000002E X RST30
+00:00000034 X RST38
+01:00000200   Start
+01:0000020E   ClearSRAM
+01:0000021A   Greet
+01:00000220   GetInputString
+01:0000023D X CheckCmdLength
+01:0000024E   GotCmdLength
+01:00000259 X InputLoopEnd
+01:00000268   ConvertStringToHex8
+01:00000270 X ConvertStringToHex8.DoConversion
+01:00000270 X ConvertStringToHex8.Digit0
+01:00000278 X ConvertStringToHex8.Digit0_IsAlpha
+01:00000287   ConvertStringToHex8.Digit0_IsNumber
+01:00000296   ConvertStringToHex8.Digit1
+01:0000029E X ConvertStringToHex8.Digit1_IsAlpha
+01:000002A8   ConvertStringToHex8.Digit1_IsNumber
+01:000002B0   ConvertStringToHex8.Done
+01:000002B1   ConvertStringToHex16
+01:000002B9   ConvertStringToHex16.JustifyLoop
+01:000002D9   ConvertStringToHex16.DoConversion
+01:000002D9 X ConvertStringToHex16.Digit0
+01:000002E4   ConvertStringToHex16.Digit0_IsAlpha
+01:000002F3   ConvertStringToHex16.Digit0_IsNumber
+01:00000302   ConvertStringToHex16.Digit1
+01:0000030D   ConvertStringToHex16.Digit1_IsAlpha
+01:00000317   ConvertStringToHex16.Digit1_IsNumber
+01:00000321   ConvertStringToHex16.Digit2
+01:0000032C   ConvertStringToHex16.Digit2_IsAlpha
+01:0000033B   ConvertStringToHex16.Digit2_IsNumber
+01:0000034A   ConvertStringToHex16.Digit3
+01:00000355   ConvertStringToHex16.Digit3_IsAlpha
+01:0000035F   ConvertStringToHex16.Digit3_IsNumber
+01:00000369   ConvertStringToHex16.Done
+01:0000036A   ConvertHex16ToString
+01:000003CF   ConvertHex8ToString
+01:00000410   CmdDebugOutput
+01:00000473   GetArgument
+01:0000047A   GetArgument.loop
+01:00000490   GetArgument.ArgumentCopyLoop
+01:000004A5   GetArgument.copychar
+01:000004A9   GetArgument.done
+01:000004AA   ClearInputBuffer
+01:000004AF   ClearInputBuffer.clear
+01:000004B8   Monitor_CMD_Memory
+01:000004E6   Monitor_DoMemoryLabel
+01:00000500   Monitor_PrintBytes
+01:00000527   Monitor_DoMemoryOutput
+01:00000548   EndMemoryLine
+01:00000576   EndMemoryLine.Done
+01:00000577   Monitor_CMD_Go
+01:0000058B   Monitor_CMD_Upload
+01:000005A1   Monitor_CMD_Upload.Done
+01:000005A2   HEX_CopyRecord
+01:000005B7   HEX_GetASCIIByteValue
+01:000005CA   HEX_AwaitStartCode
+01:000005D2   HEX_ReceiveRecord
+01:0000061D   ReceiveLoop
+01:0000062E   HEX_GetChecksum
+02:00008172   HEX_GotStartCode
+02:00008173   HEX_BytesInRecord
+02:00008174 X HEX_BaseAddress
+02:00008176   HEX_Address
+02:00008178   HEX_RecordType
+02:00008179   HEX_Checksum
+02:0000817A   HEX_RecordData
+01:000007A4   STR_HEX_ReadyToReceive
+01:000007BC   STR_HEX_Debug_GotStart
+01:000007CD   STR_HEX_Debug_GotLength
+01:000007DE   STR_HEX_Debug_GotAddr
+01:000007F0   STR_HEX_Debug_GotType
+01:000007FF   STR_HEX_Debug_GotData
+01:0000080E   STR_HEX_Debug_GotChecksum
+01:00000821   Monitor_InterpretCommand
+02:00008000   buffer_base
+02:00008000 X buffer_len
+02:00008001 X buffer_inputsize
+02:00008002   buffer_Input
+02:00008101   StringToHex_Source
+02:00008111   StringToHex_Dest
+02:00008119   HexToString_Source
+02:0000811D   HexToString_Dest
+02:00008121   MemoryOutputStartAddr
+02:00008123   MemoryOutputCurAddr
+02:00008125   MemoryOutputEndAddr
+02:00008127   MemoryOutputBytesLeft
+02:00008129 X HEX_DestinationAddr
+02:0000812B X MON_PreviousCmd
+02:0000812D   MON_Command
+02:0000812F X MON_ArgDestPtr
+02:00008131   MON_ArgStartsAt
+02:00008800   MON_Argument1
+02:00008810   MON_Argument2
+02:00008820   MON_Argument3
+02:00008830   MON_Argument4
 
 
-              	#target rom
-              	
-              	#include "bios.inc"
-0000:         	B_CONOUT        = 0
-0001:         	B_STROUT        = 1
-0002:         	B_CONIN         = 2
-0003:         	B_CONSTAT       = 3
-0004:         	B_STRIN         = 4
-              	
-              	DoBIOS	.macro
-              			rst	$20
-              			.endm
-              	
-              		;; SIO equates
-0081:         	SIOA_D	.EQU $81
-0080:         	SIOA_C	.EQU $80
-0083:         	SIOB_D	.EQU $83
-0082:         	SIOB_C	.EQU $82
-              		
-8000:         	#data 	DATA,0x8000,0x8000
-              	
-0000:         	#code	_BOOT,0h,200h		; Reset vector, RST vectors, NMI vectors
-              	
-              		;;  see rc2014init.asm
-              		
-0000: F3      	RST00:	di			; interrupts off
-0001: C30002  			jp	Start
-0004: 00      			nop
-0005: 00      			nop
-0006: 00      			nop
-0007: 00      			nop			
-              	
-0008: C32602  	RST08:	jp	rc2014_sio_TX	; 0x08
-000B: 00      			nop
-000C: 00      			nop
-000D: 00      			nop
-000E: 00      			nop
-000F: 00      			nop
-              	
-0010: C30B02  	RST10:	jp	rc2014_getc	; 0x10
-0013: 00      			nop
-0014: 00      			nop
-0015: 00      			nop
-0016: 00      			nop
-0017: 00      			nop
-              	
-0018: C31C02  	RST18:	jp	rc2014_pollc	; 0x18
-001B: 00      			nop
-001C: 00      			nop
-001D: 00      			nop
-001E: 00      			nop
-001F: 00      			nop
-              	
-0020: C36002  	RST20:	jp	B_Dispatch	; 0x20
-0023: 00      			nop
-0024: 00      			nop
-0025: 00      			nop
-0026: 00      			nop
-0027: 00      			nop
-              	
-0028: C9      	RST28:	ret
-0029: 00      			nop
-002A: 00      			nop
-002B: 00      			nop
-002C: 00      			nop
-002D: 00      			nop
-              		
-002E: C9      	RST30:	ret
-002F: 00      			nop
-0030: 00      			nop
-0031: 00      			nop
-0032: 00      			nop
-0033: 00      			nop
-              	
-0034: ED4D    	RST38:	reti
-0036: 00      			nop
-0037: 00      			nop
-0038: 00      			nop
-0039: 00      			nop
-003A: 00      			nop
-              		
-              	;;; ;;;;;;;;;;;;;;;;
-              	
-0200:         	#code	_CODE,0x200,0x1E00	; 8K page total
-              	
-0200:         	Start:
-0200: 21F9FF  		ld		hl,$FFF9	; initialize stack
-0203: F9      		ld		sp,hl
-              	
-0204: F3      		di
-0205: CD3102  		call	rc2014_sio_init
-0208: C37603  		jp		Greet
-              	
-              	#include 	"rc2014.asm"
-              	;;; rc2014_getc
-              	;;; Wait for the UART to receive a character.
-              	;;; Return the character in HL.
-020B:         	rc2014_getc:
-020B: F5      	        push 	af
-020C: DB80    	waitch:	in 		a,(SIOA_C)
-020E: CB47    	        bit 	0,a
-0210: 28FA    	        jr 		z,waitch
-0212: DB81    	        in 		a,(SIOA_D)
-0214: 2600    	        ld 		h,0
-0216: 6F      	        ld 		l,a
-0217: F1      	        pop 	af
-0218: C9      	        ret
-              	
-              	;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-              	;;; rc2014_putc
-              	;;; Output the byte in L to the SIO.
-              	;;;
-0219:         	rc2014_putc:
-0219: 7D      		ld	a,l
-021A: CF      		rst	$08
-021B: C9      		ret
-              	
-              	;;; rc2014_pollc
-              	;;; Poll the UART receive buffer.
-              	;;; L <- 1 if data available
-              	;;; L <- 0 if no data available
-021C:         	rc2014_pollc:
-021C: 2E00    		ld	l,0
-021E: DB80    		in	a,(SIOA_C)
-0220: CB47    		bit	0,a
-0222: C8      		ret	z
-0223: 2E01    		ld	l,1
-0225: C9      		ret
-              	
-              	;;; ;;;;;;;;;;;;;
-0226:         	rc2014_sio_TX:
-              	#local
-0226: F5      			push af
-0227: DB80    	txbusy: in a,($80)          ; read serial status
-0229: CB57    	        bit 2,a             ; check status bit 2
-022B: 28FA    	        jr z, txbusy        ; loop if zero (serial is busy)
-022D: F1      	        pop af
-022E: D381    	        out ($81), a        ; transmit the character
-0230: C9      	        ret
-              	#endlocal
-              	
-              	;;; ;;;;;;;;;;;;;
-0231:         	rc2014_sio_init:
-              	;;; Set up the SIO channel A for UART transmit/receive.
-0231: 3E30    		ld	a,00110000b	; WR0: error reset, select WR0
-0233: D380    		out	(SIOA_C),a
-0235: 3E18    		ld	a,018h		; WR0: reset
-0237: D380    		out	(SIOA_C),a
-              	
-0239: 3E04    		ld	a,04h		; WR0: select WR4
-023B: D380    		out	(SIOA_C),a
-023D: 3EC4    		ld	a,11000100b	; WR4: CLK/64, 1 stop, N parity (at 2.4MHz, 38400bps)
-023F: D380    		out	(SIOA_C),a
-              	
-0241: 3E05    		ld	a,05h		; WR0: select WR5
-0243: D380    		out	(SIOA_C),a
-0245: 3EE8    		ld	a,11101000b	; DTR, TX 8bit, no BRK, TX on, no RTS
-0247: D380    		out	(SIOA_C),a
-              	
-0249: 3E01    		ld	a,01h		; WR0: select WR1
-024B: D382    		out	(SIOB_C),A
-024D: 3E04    		ld	a,00000100b	; No CH B interrupt
-              	
-024F: 3E01    		ld	a,01h		; WR0: Select WR1
-0251: D380    		out	(SIOA_C),A	
-0253: 3E00    		ld	a,00h		; WR1: All interrupts off
-0255: D380    		out	(SIOA_C),A
-              	
-              		;; Enable SIO RX on channel A.
-0257: 3E03    		ld	a,03h
-0259: D380    		out	(SIOA_C),a
-025B: 3EC1    		ld	a,0C1h		; RX 8bit, RX on, auto enable off
-025D: D380    		out	(SIOA_C),a
-              	
-025F: C9      		ret
-              	
-              	;;; ;;;;;;;;;;;;;;;;;
-              	;;; BIOS functions
-              	;;;
-              	;;; API:
-              	;;;		All BIOS functions are prefixed with B_
-              	;;; 	Input is DE
-              	;;;		Output bytes are in A
-              	;;;		Output words are in HL (todo: ?)
-              	;;;
-              	;;;		Do not assume any registers are preserved.
-0260:         	B_Dispatch:
-              		;; Dispatch to the function number C.
-0260: D5      		push	de
-0261: F5      		push	af
-0262: 210003  		ld		hl,BIOS_FnTable	; grab the jump table address
-0265: 1600    		ld		d,0		; clear D
-              		
-0267: CB21    		sla		c		; shift C to produce a table offset
-0269: 59      		ld		e,c		; E <- C
-026A: 19      		add		hl,de	; Apply the offset.
-026B: 5E23562B		ld		de,(hl)	; Get the destination address.
-026F: 626B    		ld		hl,de	; Move it into HL so we can jump to it.
-              	
-0271: F1      		pop		af		; Restore AF and DE.
-0272: D1      		pop		de
-0273: E9      		jp		(hl)	; Jump to the BIOS function, which RETs back to where we started.
-0274: C9      		ret				; Unnecessary unless something breaks
-              		
-              	;;
-0275:         	B_Conout:
-              		;; CONsole OUTput.
-              		;; 
-              		;; Input:
-              		;; E - character
-0275: 7B      		ld		a,e
-0276: CD2602  		call	rc2014_sio_TX
-0279: C9      		ret
-              	
-              	;;
-              	#local
-027A:         	B_Strout::
-              		;; STRing OUTput.
-              		;; Input:
-              		;; DE - string address
-              		;;
-              		;; Perform B_Conout until a 0 is found in the string.
-027A:         	1$:	
-027A: 1A      		ld		a,(de)
-027B: FE00    		cp		#0
-027D: 2809    		jr		z,2$
-027F: D5      		push	de
-0280: 5F      		ld		e,a
-0281: CD7502  		call	B_Conout
-0284: D1      		pop		de
-0285: 13      		inc		de
-0286: 18F2    		jr		1$
-              	
-0288:         	2$:
-0288: C9      		ret	
-              	#endlocal	
-              	;;
-              	
-0289:         	B_Conin:
-              		;; CONsole INput.
-              		;;
-              		;; Blocks until a character is available on the console.
-              		;; Output:
-              		;; A = character received
-0289: CD0B02  		call	rc2014_getc	; returns char in L
-028C: 7D      		ld		a,l			; copy it to A and return
-028D: C9      		ret
-              		;;
-              	
-028E:         	B_Constat:
-              		;; CONsole STATus.
-              		;;
-              		;; Output:
-              		;; A  = 0 if no characters are waiting to be read
-              		;; A != 0 if character is waiting
-028E: CD1C02  		call	rc2014_pollc
-0291: 7D      		ld		a,l
-0292: C9      		ret
-              	
-              	#local
-0293:         	B_Strin::
-              		;; Read string into buffer.
-              		;; Buffer structure is as follows:
-              		;;	db buffer_size		- how many characters are allowed
-              		;;	db input_length 	- populated after input is complete
-              		;;	byte[buffer_size] 	- the input string
-              		;;
-              		;; Buffer address is placed in DE.
-0293: FD62FD6B		ld		iy,de	; Copy buffer base address to IY
-0297: FD23    		inc		iy
-0299: FD23    		inc		iy		; advance 2 bytes to start of the string buffer
-              	
-029B: DD210000		ld		ix,0	; clear input length
-              	
-029F:         	begin:
-029F: D7      		rst		$10		; Get an input character.
-              	
-              		; Check for Ctrl+H
-02A0: 7D      		ld		a,l
-02A1: FE08    		cp		$08
-02A3: 2805    		jr		z,handlebs
-              	
-02A5:         	check2:
-              		; Check for 0x7F (some terminals use this instead)
-02A5: 7D      		ld		a,l
-02A6: FE7F    		cp		$7F	
-02A8: 2027    		jr		nz,charout	; Any other character bypasses
-              	
-02AA:         	handlebs:
-              		;; Handle the backspace.
-02AA: DD7D    		ld		a,ixl	; is the input length already 0? if so, ignore and go back to waiting for input
-02AC: FE00    		cp		0
-02AE: 28EF    		jr		z,begin
-              	
-              		; Reset the write pointer and length.
-02B0: FD2B    		dec		iy
-02B2: DD2B    		dec		ix
-              	
-02B4: D5      		push	de
-02B5: E5      		push	hl
-02B6: DDE5    		push	ix
-02B8: FDE5    		push	iy
-02BA: 1E08    		ld		e,$08
-02BC: 0E00    		ld		c,B_CONOUT
-              		DoBIOS		; console BS
-02BE: E7      			rst	$20
-02BF: 1E20    		ld		e,$20
-02C1: 0E00    		ld		c,B_CONOUT
-              		DoBIOS		; console SPC
-02C3: E7      			rst	$20
-02C4: 1E08    		ld		e,$08
-02C6: 0E00    		ld		c,B_CONOUT
-              		DoBIOS		; console BS
-02C8: E7      			rst	$20
-02C9: FDE1    		pop		iy
-02CB: DDE1    		pop		ix
-02CD: E1      		pop		hl
-02CE: D1      		pop		de
-02CF: 18CE    		jr		begin	; And we're done.
-              	
-02D1:         	charout:
-              		; write character to buffer
-02D1: FD7500  		ld		(iy),l	; copy the character to the input buffer
-02D4: FD23    		inc		iy		; advance buffer
-02D6: DD23    		inc		ix		; length++
-              	
-              		; TODO: Length == buffer size? If so, don't allow more characters.
-              	
-02D8:         	write:	
-              		; write character to console
-02D8: D5      		push	de
-02D9: E5      		push	hl
-02DA: DDE5    		push	ix
-02DC: FDE5    		push	iy
-02DE: 5D      		ld		e,l
-02DF: 0E00    		ld		c,B_CONOUT
-              		DoBIOS
-02E1: E7      			rst	$20
-02E2: FDE1    		pop		iy
-02E4: DDE1    		pop		ix
-02E6: E1      		pop		hl
-02E7: D1      		pop		de
-              	
-              		; Is the character 0x0D?
-02E8: 7D      		ld		a,l
-02E9: FE0D    		cp		$0D	; LF
-02EB: 20B2    		jr		nz,begin		; loop if no
-              	
-              		; add a null
-02ED: 2E00    		ld		l,0
-02EF: FD7500  		ld		(iy),l	; copy the character to the input buffer
-02F2: FD23    		inc		iy		; advance buffer
-02F4: DD23    		inc		ix		; length++
-              	
-              		; Write the length to the buffer struct
-02F6: DD7D    		ld		a,ixl
-02F8: FD62FD6B		ld		iy,de
-02FC: FD7701  		ld		(iy+1),a
-              	
-02FF: C9      		ret
-              	#endlocal
-              	
-0300:         	BIOS_FnTable:
-0300: 7502    		.dw B_Conout		; C = 0
-0302: 7A02    		.dw	B_Strout		; C = 1
-0304: 8902    		.dw	B_Conin			; C = 2
-0306: 8E02    		.dw	B_Constat		; C = 3
-0308: 9302    		.dw	B_Strin			; C = 4
-              	#include	"strings.asm"
-030A:         	strPrompt:
-030A: 3E00    		.asciz	">"
-030C:         	strCRLF:
-030C: 0D0A00  		.ascii	13,10,0
-              	
-030F:         	HelloWorld:
-030F: 50726F63		.ascii	"Procyon/80 ROM Monitor - RC2014 SIO/2 64K",13,10,0
-0313: 796F6E2F	
-0317: 38302052	
-031B: 4F4D204D	
-031F: 6F6E6974	
-0323: 6F72202D	
-0327: 20524332	
-032B: 30313420	
-032F: 53494F2F	
-0333: 32203634	
-0337: 4B0D0A00	
-              	
-033B:         	strYouEntered:
-033B: 596F7520		.asciz	"You entered: "
-033F: 656E7465	
-0343: 7265643A	
-0347: 2000    	
-              	
-0349:         	strDbgCmd:
-0349: 436F6D6D	    .asciz  "Command: "
-034D: 616E643A	
-0351: 2000    	
-              	
-0353:         	strDbgArg:
-0353: 20202020	    .asciz  "    Arg: "
-0357: 4172673A	
-035B: 2000    	
-              	
-035D:         	strCmdUnknown:
-035D: 2A2A2A20	    .asciz  "*** Unrecognized command"
-0361: 556E7265	
-0365: 636F676E	
-0369: 697A6564	
-036D: 20636F6D	
-0371: 6D616E64	
-0375: 00      	
-              		
-0376:         	Greet:
-0376: 110F03  		ld		de,HelloWorld
-0379: 0E01    		ld		c,B_STROUT
-037B: E7      		rst		$20
-              	
-037C:         	GetInputString:
-              		; reset offset
-037C: 110A03  		ld		de,strPrompt
-037F: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-0381: E7      			rst	$20
-              	
-0382: CD0606  		call	ClearInputBuffer
-0385: 114880  		ld		de,buffer_base
-0388: 0E04    		ld		c,B_STRIN
-              		DoBIOS
-038A: E7      			rst	$20
-038B: 110C03  		ld		de,strCRLF
-038E: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-0390: E7      			rst	$20
-              	
-              		; Take the first two bytes of buffer_Input and put them in the command register.
-0391: ED5B4A80		ld		de,(buffer_Input)
-0395: ED537581		ld		(MON_Command),de
-              	
-0399:         	CheckCmdLength:
-              		; Assume argument starts at buffer_Input+3
-0399: 3E03    		ld		a,3
-039B: 327981  		ld		(MON_ArgStartsAt),a
-              	
-              		; Is the second byte of the command register 0x20? 
-              		; If so, the argument starts at buffer_Input+2.
-039E: 3A7681  		ld		a,(MON_Command+1)
-03A1: FE20    		cp		$20
-03A3: 2005    		jr		nz,GotCmdLength
-03A5: 3E02    		ld		a,2
-03A7: 327981  		ld		(MON_ArgStartsAt),a
-              	
-03AA:         	GotCmdLength:
-03AA: 060A    		ld		b,10
-03AC: CDCF05  		call	GetArgument
-03AF: CD6C05  		call	CmdDebugOutput
-              	
-03B2: CD2908  		call	Monitor_InterpretCommand
-              	
-              	; Loop...
-03B5:         	InputLoopEnd:
-03B5: 110C03  		ld		de,strCRLF
-03B8: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-03BA: E7      			rst	$20
-03BB: 110C03  		ld		de,strCRLF
-03BE: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-03C0: E7      			rst	$20
-03C1: C37C03  		jp		GetInputString
-              	
-              	;;;;;;;;
-              	
-03C4:         	ConvertStringToHex8:
-              	; Convert the string in StringToHex_Source to a 8-bit hex value.
-              	#local
-03C4: DD214981		ld		ix,StringToHex_Source
-03C8: FD215981		ld		iy,StringToHex_Dest
-              	
-03CC:         	DoConversion:
-03CC:         	Digit0:
-              		; Less than $40? Subtract $30.
-              		; More than $40? Subtract $40.
-03CC: DD7E00  		ld		a,(ix+0)
-03CF: FE40    		cp		$40
-03D1: FAE303  		jp		m,Digit0_IsNumber
-              	
-03D4:         	Digit0_IsAlpha:
-03D4: C6C9    		add		a,-$37
-03D6: CB27    		sla		a
-03D8: CB27    		sla		a
-03DA: CB27    		sla		a
-03DC: CB27    		sla		a
-03DE: FD7700  		ld		(iy+0),a
-03E1: 180F    		jr		Digit1
-              	
-03E3:         	Digit0_IsNumber:
-03E3: C6D0    		add		a,-$30
-03E5: CB27    		sla		a
-03E7: CB27    		sla		a
-03E9: CB27    		sla		a
-03EB: CB27    		sla		a
-03ED: FD7700  		ld		(iy+0),a
-03F0: 1800    		jr		Digit1
-              	
-03F2:         	Digit1:
-              		; Less than $40? Subtract $30.
-              		; More than $40? Subtract $40.
-03F2: DD7E01  		ld		a,(ix+1)
-03F5: FE40    		cp		$40
-03F7: FA0404  		jp		m,Digit1_IsNumber
-              	
-03FA:         	Digit1_IsAlpha:
-03FA: C6C9    		add		a,-$37
-03FC: FDB600  		or		(iy+0)
-03FF: FD7700  		ld		(iy+0),a
-0402: 1808    		jr		Done
-              	
-0404:         	Digit1_IsNumber:
-0404: C6D0    		add		a,-$30
-0406: FDB600  		or		(iy+0)
-0409: FD7700  		ld		(iy+0),a
-              	
-040C:         	Done:
-040C: C9      		ret
-              	#endlocal
-              	
-              	;;;;;;;;
-040D:         	ConvertStringToHex16:
-              	; Convert the string in StringToHex_Source to a 16-bit hex value.
-              	#local
-040D: DD214981		ld		ix,StringToHex_Source
-0411: FD215981		ld		iy,StringToHex_Dest
-              	
-              		; Right-justify the value and add leading zeroes.
-0415:         	JustifyLoop:
-0415: DD7E03  		ld		a,(ix+3)
-0418: FE00    		cp		0
-041A: 2019    		jr		nz,DoConversion
-041C: DD7E02  		ld		a,(ix+2)
-041F: DD7703  		ld		(ix+3),a
-0422: DD7E01  		ld		a,(ix+1)
-0425: DD7702  		ld		(ix+2),a
-0428: DD7E00  		ld		a,(ix+0)
-042B: DD7701  		ld		(ix+1),a
-042E: 3E30    		ld		a,$30		; ASCII 0
-0430: DD7700  		ld		(ix+0),a
-0433: 18E0    		jr		JustifyLoop
-              	
-0435:         	DoConversion:
-0435:         	Digit0:
-              		; Less than $40? Subtract $30.
-              		; More than $40? Subtract $40.
-0435: DD7E00  		ld		a,(ix+0)
-0438: FE40    		cp		$40
-043A: F24004  		jp		p,Digit0_IsAlpha
-043D: FA4F04  		jp		m,Digit0_IsNumber
-              	
-0440:         	Digit0_IsAlpha:
-0440: C6C9    		add		a,-$37
-0442: CB27    		sla		a
-0444: CB27    		sla		a
-0446: CB27    		sla		a
-0448: CB27    		sla		a
-044A: FD7701  		ld		(iy+1),a
-044D: 180F    		jr		Digit1
-              	
-044F:         	Digit0_IsNumber:
-044F: C6D0    		add		a,-$30
-0451: CB27    		sla		a
-0453: CB27    		sla		a
-0455: CB27    		sla		a
-0457: CB27    		sla		a
-0459: FD7701  		ld		(iy+1),a
-045C: 1800    		jr		Digit1
-              	
-045E:         	Digit1:
-              		; Less than $40? Subtract $30.
-              		; More than $40? Subtract $40.
-045E: DD7E01  		ld		a,(ix+1)
-0461: FE40    		cp		$40
-0463: F26904  		jp		p,Digit1_IsAlpha
-0466: FA7304  		jp		m,Digit1_IsNumber
-              	
-0469:         	Digit1_IsAlpha:
-0469: C6C9    		add		a,-$37
-046B: FDB601  		or		(iy+1)
-046E: FD7701  		ld		(iy+1),a
-0471: 180A    		jr		Digit2
-              	
-0473:         	Digit1_IsNumber:
-0473: C6D0    		add		a,-$30
-0475: FDB601  		or		(iy+1)
-0478: FD7701  		ld		(iy+1),a
-047B: 1800    		jr		Digit2
-              	
-047D:         	Digit2:
-              		; Less than $40? Subtract $30.
-              		; More than $40? Subtract $40.
-047D: DD7E02  		ld		a,(ix+2)
-0480: FE40    		cp		$40
-0482: F28804  		jp		p,Digit2_IsAlpha
-0485: FA9704  		jp		m,Digit2_IsNumber
-              	
-0488:         	Digit2_IsAlpha:
-0488: C6C9    		add		a,-$37
-048A: CB27    		sla		a
-048C: CB27    		sla		a
-048E: CB27    		sla		a
-0490: CB27    		sla		a
-0492: FD7701  		ld		(iy+1),a
-0495: 180F    		jr		Digit3
-              	
-0497:         	Digit2_IsNumber:
-0497: C6D0    		add		a,-$30
-0499: CB27    		sla		a
-049B: CB27    		sla		a
-049D: CB27    		sla		a
-049F: CB27    		sla		a
-04A1: FD7700  		ld		(iy+0),a
-04A4: 1800    		jr		Digit3
-              	
-04A6:         	Digit3:
-              		; Less than $40? Subtract $30.
-              		; More than $40? Subtract $40.
-04A6: DD7E03  		ld		a,(ix+3)
-04A9: FE40    		cp		$40
-04AB: F2B104  		jp		p,Digit3_IsAlpha
-04AE: FABB04  		jp		m,Digit3_IsNumber
-              	
-04B1:         	Digit3_IsAlpha:
-04B1: C6C9    		add		a,-$37
-04B3: FDB600  		or		(iy+0)
-04B6: FD7700  		ld		(iy+0),a
-04B9: 180A    		jr		Done
-              	
-04BB:         	Digit3_IsNumber:
-04BB: C6D0    		add		a,-$30
-04BD: FDB600  		or		(iy+0)
-04C0: FD7700  		ld		(iy+0),a
-04C3: 1800    		jr		Done
-              	
-04C5:         	Done:
-04C5: C9      		ret
-              	#endlocal
-              	;;;;;;;;
-              	
-              	;;;;;;;;
-04C6:         	ConvertHex16ToString:
-              		; Convert the value in HexToString_Source to ASCII characters.
-04C6: DD216181		ld		ix,HexToString_Source
-04CA: FD216581		ld		iy,HexToString_Dest
-              	
-04CE: 210000  		ld		hl,0
-04D1: FD7500  		ld		(iy+0),hl
-04D4: FD7401  	
-04D7: FD7502  		ld		(iy+2),hl
-04DA: FD7403  	
-              	
-              		; A
-04DD: DD7E01  		ld		a,(ix+1)
-04E0: E6F0    		and		$F0		; now we only have A
-04E2: CB3F    		srl		a
-04E4: CB3F    		srl		a
-04E6: CB3F    		srl		a
-04E8: CB3F    		srl		a
-04EA: C690    		add  	a,$90
-04EC: 27      		daa
-04ED: CE40    		adc  	a,$40
-04EF: 27      		daa
-04F0: FD7700  		ld		(iy+0),a
-              	
-              		; B
-04F3: DD7E01  		ld		a,(ix+1)
-04F6: E60F    		and		$0F		; now we only have B
-04F8: C690    		add  	a,$90
-04FA: 27      		daa
-04FB: CE40    		adc  	a,$40
-04FD: 27      		daa
-04FE: FD7701  		ld		(iy+1),a
-              	
-              		; C
-0501: DD7E00  		ld		a,(ix)
-0504: E6F0    		and		$F0		; now we only have C
-0506: CB3F    		srl		a	
-0508: CB3F    		srl		a
-050A: CB3F    		srl 	a
-050C: CB3F    		srl 	a
-050E: C690    		add  	a,$90
-0510: 27      		daa
-0511: CE40    		adc  	a,$40
-0513: 27      		daa
-0514: FD7702  		ld		(iy+2),a
-              	
-              		; D
-0517: DD7E00  		ld		a,(ix)
-051A: E60F    		and		$0F		; now we only have D
-051C: C690    		add  	a,$90
-051E: 27      		daa
-051F: CE40    		adc  	a,$40
-0521: 27      		daa
-0522: FD7703  		ld		(iy+3),a
-              	
-0525: 3E00    		ld		a,0
-0527: FD7704  		ld		(iy+4),a
-              	
-052A: C9      		ret
-              	
-              	;;;
-052B:         	ConvertHex8ToString:
-              		; Convert the value in HexToString_Source to ASCII characters.
-              		; A
-052B: FD216581		ld		iy,HexToString_Dest
-052F: DD216181		ld		ix,HexToString_Source
-              	
-0533: 210000  		ld		hl,0
-0536: FD7500  		ld		(iy+0),hl
-0539: FD7401  	
-053C: FD7502  		ld		(iy+2),hl
-053F: FD7403  	
-              	
-0542: DD7E00  		ld		a,(ix)
-0545: E6F0    		and		$F0		; now we only have A
-0547: CB3F    		srl		a	
-0549: CB3F    		srl		a
-054B: CB3F    		srl 	a
-054D: CB3F    		srl 	a
-054F: C690    		add  	a,$90
-0551: 27      		daa
-0552: CE40    		adc  	a,$40
-0554: 27      		daa
-0555: FD7700  		ld		(iy+0),a
-              	
-              		; B
-0558: DD7E00  		ld		a,(ix)
-055B: E60F    		and		$0F		; now we only have B
-055D: C690    		add  	a,$90
-055F: 27      		daa
-0560: CE40    		adc  	a,$40
-0562: 27      		daa
-0563: FD7701  		ld		(iy+1),a
-              	
-0566: 3E00    		ld		a,0
-0568: FD7702  		ld		(iy+2),a
-              	
-056B: C9      		ret
-              	
-              	;;;;;;;;
-056C:         	CmdDebugOutput:
-056C: 114903  		ld		de,strDbgCmd
-056F: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-0571: E7      			rst	$20
-0572: DD2A7581		ld		ix,(MON_Command)
-0576: DD5D    		ld		e,ixl
-0578: 0E00    		ld		c,B_CONOUT
-              		DoBIOS
-057A: E7      			rst	$20
-057B: DD5C    		ld		e,ixh
-057D: 0E00    		ld		c,B_CONOUT
-              		DoBIOS
-057F: E7      			rst	$20
-0580: 110C03  		ld		de,strCRLF
-0583: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-0585: E7      			rst	$20
-              	
-0586: 115303  		ld		de,strDbgArg
-0589: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-058B: E7      			rst	$20
-058C: 110088  		ld		de,MON_Argument1
-058F: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-0591: E7      			rst	$20
-0592: 110C03  		ld		de,strCRLF
-0595: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-0597: E7      			rst	$20
-0598: 115303  		ld		de,strDbgArg
-059B: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-059D: E7      			rst	$20
-059E: 111088  		ld		de,MON_Argument2
-05A1: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-05A3: E7      			rst	$20
-05A4: 110C03  		ld		de,strCRLF
-05A7: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-05A9: E7      			rst	$20
-05AA: 115303  		ld		de,strDbgArg
-05AD: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-05AF: E7      			rst	$20
-05B0: 112088  		ld		de,MON_Argument3
-05B3: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-05B5: E7      			rst	$20
-05B6: 110C03  		ld		de,strCRLF
-05B9: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-05BB: E7      			rst	$20
-05BC: 115303  		ld		de,strDbgArg
-05BF: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-05C1: E7      			rst	$20
-05C2: 113088  		ld		de,MON_Argument4
-05C5: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-05C7: E7      			rst	$20
-05C8: 110C03  		ld		de,strCRLF
-05CB: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-05CD: E7      			rst	$20
-              	
-05CE: C9      		ret
-              	
-              	;;;;;;;;;;;;;;;;;;
-05CF:         	GetArgument:
-              	#local
-              		; Clear the 4 argument buffers.
-05CF: 0640    		ld		b,16*4
-05D1: 3E00    		ld		a,0
-05D3: 210088  		ld		hl,MON_Argument1
-05D6:         	1$:
-05D6: 3600    		ld		(hl),0
-05D8: 23      		inc		hl
-05D9: 10FB    		djnz	1$
-              	
-              		; Copy from buffer_Input+MON_ArgStartsAt into the argument buffers.
-              		; Max 4 space-delimited arguments.
-05DB: 110088  		ld		de,MON_Argument1	; <-- MUST BE PAGE ALIGNED FOR POINTER MATH TO WORK!
-05DE: 214A80  		ld		hl,buffer_Input
-05E1: DD210088		ld		ix,MON_Argument1
-              	
-05E5: 3A7981  		ld		a,(MON_ArgStartsAt)
-05E8: 4F      		ld		c,a
-05E9: 0600    		ld		b,0		; BC is now ArgStartsAt
-05EB: 09      		add		hl,bc	; And HL is now the beginning of the arguments.
-              	
-              		; HL is now the beginning of the argument.
-              		; DE is now the destination address.
-05EC:         	ArgumentCopyLoop:
-              		; Copy until we find a SPC. A CR/LF advances to the next argument buffer.
-              		; Only 4 arguments are supported.
-05EC: 7E      		ld		a,(hl)
-05ED: 23      		inc		hl
-05EE: FE0D    		cp		$0D
-05F0: 2813    		jr		z,done
-05F2: FE20    		cp		$20
-05F4: 200B    		jr		nz,copychar
-              		
-              		; Advance to the next argument.
-05F6: DD7D    		ld		a,ixl
-05F8: C610    		add		a,16
-05FA: 5F      		ld		e,a
-05FB: C610    		add		a,16
-05FD: DD6F    		ld		ixl,a
-              	
-05FF: 18EB    		jr		ArgumentCopyLoop
-              	
-0601:         	copychar:
-0601: 12      		ld		(de),a
-0602: 13      		inc		de
-0603: 10E7    		djnz	ArgumentCopyLoop
-              	
-0605:         	done:
-0605: C9      		ret
-              	#endlocal
-              	
-              	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-0606:         	ClearInputBuffer:
-0606: 3E00    		ld		a,0
-0608: 214A80  		ld		hl,buffer_Input
-060B:         	1$:
-060B: 3600    		ld		(hl),0
-060D: 23      		inc		hl
-060E: 3C      		inc		a
-060F: FEFF    		cp		$FF
-0611: 20F8    		jr		nz,1$
-0613: C9      		ret
-              	
-              	#include "commands/memory.asm"
-              	; Monitor's M command - memory output
-0614:         	Monitor_CMD_Memory:
-              		; Load the arguments into MemoryOutputStartAddr/MemoryOutputEndAddr.
-              	    
-              	    ; Beginning address
-0614: 2A0088  		ld		hl,(MON_Argument1+0)
-0617: 224981  		ld		(StringToHex_Source+0),hl
-061A: 2A0288  		ld		hl,(MON_Argument1+2)
-061D: 224B81  		ld		(StringToHex_Source+2),hl
-              	
-0620: CD0D04  		call	ConvertStringToHex16
-0623: 2A5981  		ld		hl,(StringToHex_Dest)
-0626: 226981  		ld		(MemoryOutputStartAddr),hl
-              	
-              		; Ending address
-0629: 2A1088  		ld		hl,(MON_Argument2)
-062C: 224981  		ld		(StringToHex_Source+0),hl
-062F: 2A1288  		ld		hl,(MON_Argument2+2)
-0632: 224B81  		ld		(StringToHex_Source+2),hl
-0635: CD0D04  		call	ConvertStringToHex16
-              	
-0638: 2A5981  		ld		hl,(StringToHex_Dest)
-063B: 226D81  		ld		(MemoryOutputEndAddr),hl
-063E: CD8306  		call	Monitor_DoMemoryOutput
-              	
-0641: C9      		ret
-              	
-0642:         	Monitor_DoMemoryLabel:
-              		; Formatting: start address
-0642: 2A6B81  		ld		hl,(MemoryOutputCurAddr)
-0645: 226181  		ld		(HexToString_Source),hl
-0648: CDC604  		call	ConvertHex16ToString
-064B: 116581  		ld		de,HexToString_Dest
-064E: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-0650: E7      			rst	$20
-0651: 1E3A    		ld		e,":"
-0653: 0E00    		ld		c,B_CONOUT
-              		DoBIOS
-0655: E7      			rst	$20
-0656: 1E20    		ld		e," "
-0658: 0E00    		ld		c,B_CONOUT
-              		DoBIOS
-065A: E7      			rst	$20
-065B: C9      		ret
-              	
-065C:         	Monitor_PrintBytes:
-              		; Input:
-              		; B  - how many bytes to dump
-              		; IX - pointer to start of memory area to dump
-065C: C5      		push	bc
-              	
-065D: DD7E00  		ld		a,(ix)						; A has a memory byte
-0660: 326181  		ld		(HexToString_Source),a		
-0663: DDE5    		push	ix
-0665: CD2B05  		call	ConvertHex8ToString			; Convert it to ASCII
-              	
-              		; Print two characters of output and a space
-0668: 3A6581  		ld		a,(HexToString_Dest)
-066B: 5F      		ld		e,a
-066C: 0E00    		ld		c,B_CONOUT
-              		DoBIOS								
-066E: E7      			rst	$20
-066F: 3A6681  		ld		a,(HexToString_Dest+1)
-0672: 5F      		ld		e,a
-0673: 0E00    		ld		c,B_CONOUT
-              		DoBIOS
-0675: E7      			rst	$20
-0676: 1E20    		ld		e," "
-0678: 0E00    		ld		c,B_CONOUT
-              		DoBIOS
-067A: E7      			rst	$20
-              	
-              		; Advance the memory source pointer. Continue until B == 0.
-067B: DDE1    		pop		ix
-067D: DD23    		inc		ix
-              	
-067F: C1      		pop		bc
-0680: 10DA    		djnz	Monitor_PrintBytes
-              	
-0682: C9      		ret
-              	
-0683:         	Monitor_DoMemoryOutput:
-              	#local
-0683: 2A6981  		ld		hl,(MemoryOutputStartAddr)
-0686: 226B81  		ld		(MemoryOutputCurAddr),hl
-              	
-0689: CD4206  		call	Monitor_DoMemoryLabel
-              	
-              		; Output 16 memory bytes
-068C: 2A6D81  		ld		hl,(MemoryOutputEndAddr)
-068F: ED4B6981		ld		bc,(MemoryOutputStartAddr)
-0693: 37      		scf
-0694: 3F      		ccf		; Clear carry flag to get the proper subtraction result.
-0695: 23      		inc		hl	
-0696: ED42    		sbc		hl,bc
-0698: 226F81  		ld		(MemoryOutputBytesLeft),hl
-              	
-069B: DD2A6981		ld		ix,(MemoryOutputStartAddr)
-069F: 0610    		ld		b,16
-06A1: CD5C06  		call	Monitor_PrintBytes
-              	
-06A4:         	EndMemoryLine:
-06A4: 110C03  		ld		de,strCRLF
-06A7: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-06A9: E7      			rst	$20
-              	
-06AA: 2A6F81  		ld		hl,(MemoryOutputBytesLeft)
-06AD: 37      		scf
-06AE: 011000  		ld		bc,16
-06B1: ED42    		sbc		hl,bc	; Subtract the 16 bytes we already read.
-06B3: FAD206  		jp		m,Done	; End if we're out of memory to write.
-06B6: 226F81  		ld		(MemoryOutputBytesLeft),hl
-              	
-06B9: 011000  		ld		bc,16
-06BC: 2A6B81  		ld		hl,(MemoryOutputCurAddr)
-06BF: 09      		add		hl,bc						; Advance start pointer
-06C0: 226B81  		ld		(MemoryOutputCurAddr),hl	
-06C3: CD4206  		call	Monitor_DoMemoryLabel
-              	
-06C6: 0610    		ld		b,16						; Another 16 bytes
-06C8: DD2A6B81		ld		ix,(MemoryOutputCurAddr)
-06CC: CD5C06  		call	Monitor_PrintBytes
-06CF: C3A406  		jp		EndMemoryLine
-              	
-06D2:         	Done:
-06D2: C9      		ret
-              	#endlocal
-              	#include "commands/go.asm"
-              	; Monitor's G command - Go
-              	; JP to an address.
-06D3:         	Monitor_CMD_Go:
-              	    ; Beginning address
-06D3: 2A0088  		ld		hl,(MON_Argument1+0)
-06D6: 224981  		ld		(StringToHex_Source+0),hl
-06D9: 2A0288  		ld		hl,(MON_Argument1+2)
-06DC: 224B81  		ld		(StringToHex_Source+2),hl
-              	
-06DF: CD0D04  		call	ConvertStringToHex16
-06E2: 2A5981  		ld		hl,(StringToHex_Dest)
-06E5: E9      	    jp      (hl)
-              	
-06E6: C9      		ret
-              	#include "commands/upload.asm"
-              	; Monitor's U command
-              	; Upload a HEX file somewhere in memory
-              	#local
-06E7:         	Monitor_CMD_Upload::
-              	    ; Each HEX record contains the destination address.
-06E7: 2A0088  	    ld		hl,(MON_Argument1+0)
-06EA: 224981  		ld		(StringToHex_Source+0),hl
-06ED: 2A0288  		ld		hl,(MON_Argument1+2)
-06F0: 224B81  		ld		(StringToHex_Source+2),hl
-              	
-06F3: CD0D04  		call	ConvertStringToHex16
-06F6: 2A5981  		ld		hl,(StringToHex_Dest)
-06F9: 220280  	    ld      (HEX_BaseAddress),hl
-              	
-06FC: 11AC07  		ld		de,STR_HEX_ReadyToReceive
-06FF: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-0701: E7      			rst	$20
-              	
-              	    ; Receive one record.
-0702: CD4307  	    call    HEX_ReceiveRecord
-              	
-              	    ; Is it an EOF?
-0705: 3A0680  	    ld      a,(HEX_RecordType)
-0708: FE01    	    cp      1    
-070A: 2805    	    jr      z,Done
-              	
-              	    ; Copy it to its destination.
-070C: CD1207  	    call    HEX_CopyRecord
-070F: 18D6    	    jr      Monitor_CMD_Upload
-              	
-0711:         	Done:
-0711: C9      		ret
-              	#endlocal
-              	
-0712:         	HEX_CopyRecord:
-0712: ED5B0480	    ld      de,(HEX_Address)
-0716: 2A0280  	    ld      hl,(HEX_BaseAddress)
-0719: 19      	    add     hl,de   ; HL is now base address + offset. We can't do 16-bit math in DE. :(
-071A: 545D    	    ld      de,hl
-              	
-071C: 210780  	    ld      hl,HEX_RecordData
-071F: 3A0180  	    ld      a,(HEX_BytesInRecord)
-0722: 4F      	    ld      c,a
-0723: 0600    	    ld      b,0
-0725: EDB0    	    ldir
-0727: C9      	    ret
-              	
-0728:         	HEX_GetASCIIByteValue:
-              	    ; Get two ASCII characters, convert them to a byte value, and return it in A.
-0728: 0E02    	    ld		c,B_CONIN
-              	    DoBIOS
-072A: E7      			rst	$20
-072B: 324981  		ld		(StringToHex_Source+0),a
-072E: 0E02    	    ld		c,B_CONIN
-              	    DoBIOS
-0730: E7      			rst	$20
-0731: 324A81  		ld		(StringToHex_Source+1),a
-              	
-0734: CDC403  		call	ConvertStringToHex8
-0737: 3A5981  		ld		a,(StringToHex_Dest)
-073A: C9      	    ret
-              	
-073B:         	HEX_AwaitStartCode:
-              	    ; Listen for the start code.
-073B: 0E02    	    ld		c,B_CONIN
-              	    DoBIOS
-073D: E7      			rst	$20
-              	
-073E: FE3A    	    cp      ":"
-0740: 20F9    	    jr      nz,HEX_AwaitStartCode
-              	
-              	    ; Got the start code of a HEX.
-0742: C9      	    ret
-              	
-0743:         	HEX_ReceiveRecord:
-              	    ; Receive a HEX record.
-              	
-              	    ; Set up our variables.
-0743: 3E00    	    ld      a,0
-0745: 320080  	    ld      (HEX_GotStartCode),a
-0748: 320180  	    ld      (HEX_BytesInRecord),a
-              	
-074B: CD3B07  	    call    HEX_AwaitStartCode
-074E: 210080  	    ld      hl,HEX_GotStartCode
-0751: 34      	    inc     (hl)
-              	
-0752: 11C407  	    ld		de,STR_HEX_Debug_GotStart
-0755: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-0757: E7      			rst	$20
-              	
-              	    ; Next up is the number of bytes contained in this record.
-0758: CD2807  	    call    HEX_GetASCIIByteValue
-075B: 320180  	    ld      (HEX_BytesInRecord),a
-              	
-075E: 11D507  		ld		de,STR_HEX_Debug_GotLength
-0761: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-0763: E7      			rst	$20
-              	
-              	    ; Then a big-endian address.
-0764: CD2807  	    call    HEX_GetASCIIByteValue
-0767: 67      	    ld      h,a
-0768: E5      	    push    hl
-0769: CD2807  	    call    HEX_GetASCIIByteValue
-076C: E1      	    pop     hl
-076D: 6F      	    ld      l,a
-076E: 220480  	    ld      (HEX_Address),hl
-              	
-0771: 11E607  	    ld		de,STR_HEX_Debug_GotAddr
-0774: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-0776: E7      			rst	$20
-              	
-              	    ; Then the record type.
-0777: CD2807  	    call    HEX_GetASCIIByteValue
-077A: 320680  	    ld      (HEX_RecordType),a
-              	
-077D: 11F807  		ld		de,STR_HEX_Debug_GotType
-0780: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-0782: E7      			rst	$20
-              	
-              	    ; Then the record data itself.
-0783: 3A0180  	    ld      a,(HEX_BytesInRecord)
-0786: FE00    	    cp      0
-0788: 2815    	    jr      z,HEX_GetChecksum
-              	
-078A: 47      	    ld      b,a
-078B: 210780  	    ld      hl,HEX_RecordData
-              	
-078E:         	ReceiveLoop:
-078E: C5      	    push    bc
-078F: E5      	    push    hl
-              	
-0790: CD2807  	    call    HEX_GetASCIIByteValue
-              	    
-0793: E1      	    pop     hl 
-0794: C1      	    pop     bc
-              	
-0795: 77      	    ld      (hl),a
-0796: 23      	    inc     hl          ; Advance receive buffer
-0797: 10F5    	    djnz    ReceiveLoop ; Loop until receive count is 0
-              	
-0799: 110708  		ld		de,STR_HEX_Debug_GotData
-079C: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-079E: E7      			rst	$20
-              	
-079F:         	HEX_GetChecksum:
-              	    ; And finally the checksum.
-079F: CD2807  	    call    HEX_GetASCIIByteValue
-07A2: 324780  	    ld      (HEX_Checksum),a
-              	
-07A5: 111608  		ld		de,STR_HEX_Debug_GotChecksum
-07A8: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-07AA: E7      			rst	$20
-              	
-07AB: C9      	    ret
-              	
-              	#data DATA
-8000: 00      	HEX_GotStartCode:   .db 0   ; Did we get the start code?
-8001: 00      	HEX_BytesInRecord:  .db 0   ; How many bytes does this record contain?
-8002: 0000    	HEX_BaseAddress:    .dw 0   ; Base address to write to. The record's offset is added to it.
-              	
-              	; The record itself.
-8004: 0000    	HEX_Address:        .dw 0   ; WORD  - Destination address, always big-endian.
-8006: 00      	HEX_RecordType:     .db 0   ; BYTE  - Record type.
-8007: 00000000	HEX_RecordData:     .ds 64  ; ARRAY - The record's contents.
-800B: 00...   	HEX_RecordData:     .ds 64  ; ARRAY - The record's contents.
-8047: 00      	HEX_Checksum:       .db 0   ; BYTE  - Checksum of the record.
-              	
-              	#code _CODE
-07AC: 52656164	STR_HEX_ReadyToReceive: .ascii "Ready to receive HEX.",13,10,0
-07B0: 7920746F	
-07B4: 20726563	
-07B8: 65697665	
-07BC: 20484558	
-07C0: 2E0D0A00	
-07C4: 476F7420	STR_HEX_Debug_GotStart: .ascii "Got start code",13,10,0
-07C8: 73746172	
-07CC: 7420636F	
-07D0: 64650D0A	
-07D4: 00      	
-07D5: 476F7420	STR_HEX_Debug_GotLength: .ascii "Got rec length",13,10,0
-07D9: 72656320	
-07DD: 6C656E67	
-07E1: 74680D0A	
-07E5: 00      	
-07E6: 476F7420	STR_HEX_Debug_GotAddr: .ascii "Got rec address",13,10,0
-07EA: 72656320	
-07EE: 61646472	
-07F2: 6573730D	
-07F6: 0A00    	
-07F8: 476F7420	STR_HEX_Debug_GotType: .ascii "Got rec type",13,10,0
-07FC: 72656320	
-0800: 74797065	
-0804: 0D0A00  	
-0807: 476F7420	STR_HEX_Debug_GotData: .ascii "Got rec data",13,10,0
-080B: 72656320	
-080F: 64617461	
-0813: 0D0A00  	
-0816: 476F7420	STR_HEX_Debug_GotChecksum: .ascii "Got rec checksum",13,10,0
-081A: 72656320	
-081E: 63686563	
-0822: 6B73756D	
-0826: 0D0A00  	
-              	
-              	#code	_CODE
-              	
-              	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-0829:         	Monitor_InterpretCommand:
-              		; The Z80 version of a switch statement?
-0829: 3A7581  		ld		a,(MON_Command)
-              	
-              		; JP to the command that matches. 
-              		; If no command matches, fall through to an error.
-              		; The command's RET will return to *this function's caller*
-              		; i.e. the command loop.
-              	
-              		; Command: Memory
-082C: FE4D    		cp		"M"
-082E: CA1406  		jp		z,Monitor_CMD_Memory
-              	
-0831: FE47    		cp		"G"
-0833: CAD306  		jp		z,Monitor_CMD_Go
-              	
-0836: FE55    		cp		"U"
-0838: CAE706  		jp		z,Monitor_CMD_Upload
-              	
-083B: 115D03  		ld		de,strCmdUnknown
-083E: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-0840: E7      			rst	$20
-0841: 110C03  		ld		de,strCRLF
-0844: 0E01    		ld		c,B_STROUT
-              		DoBIOS
-0846: E7      			rst	$20
-              	
-0847: C9      		ret
-              	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-              	
-              	#data	DATA	; Data section in RAM. Assume 32K of RAM on an RC2014.
-              	
-8048:         	buffer_base:
-8048: 00      	buffer_len:				.db 0
-8049: 00      	buffer_inputsize:		.db 0
-804A: 00000000	buffer_Input:			.ds	255	; 255 bytes of input storage
-804E: 00...   	buffer_Input:			.ds	255	; 255 bytes of input storage
-              	
-              	;;;
-8149: 00000000	StringToHex_Source:		.ds 16
-814D: 00...   	StringToHex_Source:		.ds 16
-8159: 00000000	StringToHex_Dest:		.ds 8
-815D: 00000000	StringToHex_Dest:		.ds 8
-              	
-8161: 00000000	HexToString_Source:		.ds	4
-8165: 00000000	HexToString_Dest:		.ds 4
-              	
-              	;;;
-8169: 0000    	MemoryOutputStartAddr:	.dw 0
-816B: 0000    	MemoryOutputCurAddr:	.dw 0
-816D: 0000    	MemoryOutputEndAddr:	.dw 0
-816F: 0000    	MemoryOutputBytesLeft:	.dw 0
-              	
-              	;;;
-8171: 0000    	HEX_DestinationAddr:	.dw 0
-              	
-              	;;;;;;;;;;;;;;;;;;;
-              	; ROM monitor data stuff
-8173: 0000    	MON_PreviousCmd:	.db		0,0
-8175: 0000    	MON_Command:		.db		0,0
-              	
-8177: 0000    	MON_ArgDestPtr:		.dw		0
-8179: 00      	MON_ArgStartsAt: 	.db		0
-817A: 00000000		.org $8800			; ensure these are page-aligned
-817E: 00...   		.org $8800			; ensure these are page-aligned
-8800: 00000000	MON_Argument1:		.ds		16
-8804: 00...   	MON_Argument1:		.ds		16
-8810: 00000000	MON_Argument2:		.ds		16
-8814: 00...   	MON_Argument2:		.ds		16
-8820: 00000000	MON_Argument3:		.ds		16
-8824: 00...   	MON_Argument3:		.ds		16
-8830: 00000000	MON_Argument4:		.ds		16
-8834: 00...   	MON_Argument4:		.ds		16
-              	
-              	#end
+ Output: test.out
+-------------------------------------------------
 
+ Page: 00
+  Org: 00000000  Size: *  Used: 00000000
 
-total time: 0.5154 sec.
-no errors
+    No output
+
+ Output: out\test.rom
+-------------------------------------------------
+
+ Page: 00
+  Org: 00000000  Size: 00000200  Used: 0000003B
+
+   Address   Length Align   Label
+   00000000      59         RST00
+   0000003B     453       <empty>
+
+ Page: 01
+  Org: 00000200  Size: 00000E00  Used: 00000640
+
+   Address   Length Align   Label
+   00000200    1083         Start
+   0000063B     361         BIOS_FnTable
+   000007A4     125         STR_HEX_ReadyToReceive
+   00000821      31         Monitor_InterpretCommand
+   00000840    1984       <empty>
+
+ Page: 02
+  Org: 00008000  Size: 00001000  Used: 000001BA
+
+   Address   Length Align   Label
+   00008000     370         buffer_base
+   00008172      72         HEX_GotStartCode
+   000081BA    3654       <empty>

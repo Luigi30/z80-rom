@@ -1,19 +1,19 @@
 strPrompt:
-	.asciz	">"
+	dz	">"
 strCRLF:
-	.ascii	13,10,0
+	db  13,10,0
 
 HelloWorld:
-	.ascii	"Procyon/80 ROM Monitor - RC2014 SIO/2 64K",13,10,0
+	db	"Procyon/80 ROM Monitor - RC2014 SIO/2 64K",13,10,0
 
 strYouEntered:
-	.asciz	"You entered: "
+	dz	"You entered: "
 
 strDbgCmd:
-    .asciz  "Command: "
+    dz  "Command: "
 
 strDbgArg:
-    .asciz  "    Arg: "
+    dz  "    Arg: "
 
 strCmdUnknown:
-    .asciz  "*** Unrecognized command"
+    dz  "*** Unrecognized command"

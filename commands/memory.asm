@@ -21,6 +21,24 @@ Monitor_CMD_Memory:
 
 	ld		hl,(StringToHex_Dest)
 	ld		(MemoryOutputEndAddr),hl
+
+    ; Debugging address conversion
+    ; ld      hl,(MemoryOutputStartAddr)
+    ; ld      (HexToString_Source),hl
+    ; call    ConvertHex16ToString
+    ; ld		de,HexToString_Dest
+	; ld		c,B_STROUT
+	; DoBIOS
+	; ld		e,"-"
+	; ld		c,B_CONOUT
+	; DoBIOS
+    ; ld      hl,(StringToHex_Dest)
+    ; ld      (HexToString_Source),hl
+    ; call    ConvertHex16ToString
+    ; ld		de,HexToString_Dest
+	; ld		c,B_STROUT
+	; DoBIOS
+
 	call	Monitor_DoMemoryOutput
 
 	ret
@@ -75,7 +93,6 @@ Monitor_PrintBytes:
 	ret
 
 Monitor_DoMemoryOutput:
-#local
 	ld		hl,(MemoryOutputStartAddr)
 	ld		(MemoryOutputCurAddr),hl
 
@@ -103,7 +120,7 @@ EndMemoryLine:
 	scf
 	ld		bc,16
 	sbc		hl,bc	; Subtract the 16 bytes we already read.
-	jp		m,Done	; End if we're out of memory to write.
+	jp		m,.Done	; End if we're out of memory to write.
 	ld		(MemoryOutputBytesLeft),hl
 
 	ld		bc,16
@@ -117,6 +134,5 @@ EndMemoryLine:
 	call	Monitor_PrintBytes
 	jp		EndMemoryLine
 
-Done:
+.Done:
 	ret
-#endlocal

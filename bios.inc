@@ -4,6 +4,6 @@ B_CONIN         = 2
 B_CONSTAT       = 3
 B_STRIN         = 4
 
-DoBIOS	.macro
+MACRO	DoBIOS	
 		rst	$20
-		.endm
+ENDMACRO
