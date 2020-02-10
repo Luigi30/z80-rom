@@ -4,16 +4,14 @@
 ;	$8000-$8FFF - Kernel private RAM
 ;	$9000-$FFFF - Transient Program Area (load programs here)
 
-	OUTPUT "out/test.rom"
+	OUTPUT "out/z80bios.rom"
 
 	DEFPAGE	0, 0000h, 0200h		; Boot vectors and stuff
-	DEFPAGE 1, 0200h, 0E00h	; Kernel code
+	DEFPAGE 1, 0200h, *	; Kernel code
+	DEFPAGE 3, 1000h, 1000h	; VDP driver
 	DEFPAGE 2, 8000h, 1000h ; Kernel data
 
 include "bios.inc"
-
-include	"rc2014.asm"
-include	"strings.asm"
 
 	;; SIO equates
 SIOA_D	EQU $81
@@ -25,7 +23,7 @@ SIOB_C	EQU $82
 	;;  see rc2014init.asm
 		org 0
 	
-RST00:	di			; interrupts off
+RST00:	di					; interrupts off
 		jp	Start
 		nop
 		nop
@@ -39,7 +37,7 @@ RST08:	jp	rc2014_sio_TX	; 0x08
 		nop
 		nop
 
-RST10:	jp	rc2014_getc	; 0x10
+RST10:	jp	rc2014_getc		; 0x10
 		nop
 		nop
 		nop
@@ -53,14 +51,14 @@ RST18:	jp	rc2014_pollc	; 0x18
 		nop
 		nop
 
-RST20:	jp	B_Dispatch	; 0x20
+RST20:	jp	B_Dispatch		; 0x20
 		nop
 		nop
 		nop
 		nop
 		nop
 
-RST28:	ret
+RST28:	jp	VDP_B_Dispatch	; 0x28
 		nop
 		nop
 		nop
@@ -80,10 +78,18 @@ RST38:	reti
 		nop
 		nop
 		nop
+
+		org 66h
+NMI:
+		reti
 	
 ;;; ;;;;;;;;;;;;;;;;
 	PAGE 1
 	org	200h
+
+	include	"rc2014.asm"
+	include	"strings.asm"
+	include "vdpbios.asm"
 
 Start:
 	ld		hl,$FFF9	; initialize stack
@@ -102,8 +108,11 @@ ClearSRAM:
 
 	di
 	call	rc2014_sio_init
-	jp		Greet
 	
+	; Set up the VDP
+	call	VDP_B_ColdStart
+	call    VDP_B_Reset
+
 Greet:
 	ld		de,HelloWorld
 	ld		c,B_STROUT
@@ -588,13 +597,13 @@ Monitor_InterpretCommand:
 buffer_base:
 buffer_len:				db 0
 buffer_inputsize:		db 0
-buffer_Input:			ds	255	; 255 bytes of input storage
+buffer_Input:			ds 255	; 255 bytes of input storage
 
 ;;;
 StringToHex_Source:		ds 16
 StringToHex_Dest:		ds 8
 
-HexToString_Source:		ds	4
+HexToString_Source:		ds 4
 HexToString_Dest:		ds 4
 
 ;;;

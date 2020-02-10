@@ -8,6 +8,7 @@ Monitor_CMD_Upload:
 	ld		c,B_STROUT
 	DoBIOS
 
+HEX_ProcessRecord:
     ; Receive one record.
     call    HEX_ReceiveRecord
 
@@ -19,7 +20,24 @@ Monitor_CMD_Upload:
 
     ; Copy it to its destination.
     call    HEX_CopyRecord
-    jr      Monitor_CMD_Upload
+
+    ; Check the checksum.
+    ld      a,(HEX_RunningChecksum)
+    cp      0
+    jr      nz,.bad    
+
+    ld		e,"#"
+	ld		c,B_CONOUT
+    DoBIOS
+    jr      .Next
+
+.bad:
+    ld		e,"X"
+	ld		c,B_CONOUT
+    DoBIOS
+
+.Next:
+    jr      HEX_ProcessRecord
 
 .Done:
 	ret
@@ -68,43 +86,52 @@ HEX_ReceiveRecord:
     ld      a,0
     ld      (HEX_GotStartCode),a
     ld      (HEX_BytesInRecord),a
+    
+    exx 
+    ld      b,0     ; The checksum will be in B'
+    exx
 
     call    HEX_AwaitStartCode
     ld      hl,HEX_GotStartCode
     inc     (hl)
 
-    ld		de,STR_HEX_Debug_GotStart
-	ld		c,B_STROUT
-	DoBIOS
-
     ; Next up is the number of bytes contained in this record.
     call    HEX_GetASCIIByteValue
     ld      (HEX_BytesInRecord),a
-
-	ld		de,STR_HEX_Debug_GotLength
-	ld		c,B_STROUT
-	DoBIOS
+    exx
+    add     b       ; Checksum calculation
+    ld      b,a     ; Store checksum in B
+    exx
 
     ; Then a big-endian address.
     call    HEX_GetASCIIByteValue
     ld      h,a
+    exx
+    add     b       ; Checksum calculation
+    ld      b,a     ; Store checksum in B
+    exx
+
+
     push    hl
     call    HEX_GetASCIIByteValue
+    push    af
+    exx
+    add     b       ; Checksum calculation
+    ld      b,a     ; Store checksum in B
+    exx
+    pop     af
+
     pop     hl
     ld      l,a
     ld      (HEX_Address),hl
 
-    ld		de,STR_HEX_Debug_GotAddr
-	ld		c,B_STROUT
-	DoBIOS
-
     ; Then the record type.
     call    HEX_GetASCIIByteValue
     ld      (HEX_RecordType),a
-
-	ld		de,STR_HEX_Debug_GotType
-	ld		c,B_STROUT
-	DoBIOS
+    exx
+    add     b       ; Checksum calculation
+    ld      b,a     ; Store checksum in B
+    exx
 
     ; Then the record data itself.
     ld      a,(HEX_BytesInRecord)
@@ -119,39 +146,40 @@ ReceiveLoop:
     push    hl
 
     call    HEX_GetASCIIByteValue
-    
     pop     hl 
-    pop     bc
-
     ld      (hl),a
+    exx
+    add     b       ; Checksum calculation
+    ld      b,a     ; Store checksum in B
+    exx
+
+    pop     bc
     inc     hl          ; Advance receive buffer
     djnz    ReceiveLoop ; Loop until receive count is 0
-
-	ld		de,STR_HEX_Debug_GotData
-	ld		c,B_STROUT
-	DoBIOS
 
 HEX_GetChecksum:
     ; And finally the checksum.
     call    HEX_GetASCIIByteValue
     ld      (HEX_Checksum),a
-
-	ld		de,STR_HEX_Debug_GotChecksum
-	ld		c,B_STROUT
-	DoBIOS
+    exx
+    add     b       ; Checksum calculation
+    ld      b,a     ; Store checksum in B
+    ld      (HEX_RunningChecksum),a ; Final checksum!
+    exx
 
     ret
 
     PAGE 2
-HEX_GotStartCode:   db 0   ; Did we get the start code?
-HEX_BytesInRecord:  db 0   ; How many bytes does this record contain?
-HEX_BaseAddress:    dw 0   ; Base address to write to. The record's offset is added to it.
+HEX_GotStartCode:   db 0    ; Did we get the start code?
+HEX_BytesInRecord:  db 0    ; How many bytes does this record contain?
+HEX_BaseAddress:    dw 0    ; Base address to write to. The record's offset is added to it.
+HEX_RunningChecksum:db 0    ; Running checksum total.
 
 ; The record itself.
-HEX_Address:        dw 0   ; WORD  - Destination address, always big-endian.
-HEX_RecordType:     db 0   ; BYTE  - Record type.
-HEX_Checksum:       db 0   ; BYTE  - Checksum of the record.
-HEX_RecordData:     ds 64  ; ARRAY - The record's contents.
+HEX_Address:        dw 0    ; WORD  - Destination address, always big-endian.
+HEX_RecordType:     db 0    ; BYTE  - Record type.
+HEX_Checksum:       db 0    ; BYTE  - Checksum of the record.
+HEX_RecordData:     ds 64   ; ARRAY - The record's contents.
 
     PAGE 1
 STR_HEX_ReadyToReceive:     db "Ready to receive HEX. Ensure 3ms delay per character.",13,10,0

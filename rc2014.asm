@@ -108,8 +108,7 @@ B_Dispatch:
 	ld		e,c		; E <- C
 	add		hl,de	; Apply the offset.
 
-	; ld	de,(hl)	; Get the destination address. - Not in SJASM.
-	ld		a,(hl)
+	ld		a,(hl)	; Get the destination address. 
 	ld		e,a
 	inc		hl
 	ld		d,(hl)
@@ -127,6 +126,7 @@ B_Conout:
 	;; CONsole OUTput.
 	;; 
 	;; Input:
+	;; D - device code for output
 	;; E - character
 	ld		a,e
 	call	rc2014_sio_TX
@@ -192,6 +192,10 @@ B_Strin:
 
 .begin:
 	rst		$10		; Get an input character.
+
+	ld		a,l
+	cp		$80
+	jp		p,.begin
 
 	; Check for Ctrl+H
 	ld		a,l
