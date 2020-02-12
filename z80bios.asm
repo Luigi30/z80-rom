@@ -11,7 +11,7 @@
 	DEFPAGE 3, 1000h, 1000h	; VDP driver
 	DEFPAGE 2, 8000h, 1000h ; Kernel data
 
-include "bios.inc"
+	include "rc2014.inc"
 
 	;; SIO equates
 SIOA_D	EQU $81
@@ -51,7 +51,7 @@ RST18:	jp	rc2014_pollc	; 0x18
 		nop
 		nop
 
-RST20:	jp	B_Dispatch		; 0x20
+RST20:	jp	BIOS_Dispatch	; 0x20
 		nop
 		nop
 		nop
@@ -65,7 +65,7 @@ RST28:	jp	VDP_B_Dispatch	; 0x28
 		nop
 		nop
 	
-RST30:	ret
+RST30:	jp	PROCYON_B_Dispatch	; 0x30
 		nop
 		nop
 		nop
@@ -90,6 +90,9 @@ NMI:
 	include	"rc2014.asm"
 	include	"strings.asm"
 	include "vdpbios.asm"
+	include "procapi.asm"
+
+	PAGE 1
 
 Start:
 	ld		hl,$FFF9	; initialize stack
@@ -108,10 +111,19 @@ ClearSRAM:
 
 	di
 	call	rc2014_sio_init
+
+	; Initialize the Procyon API
+	call	PROCYON_B_ColdStart
 	
 	; Set up the VDP
 	call	VDP_B_ColdStart
-	call    VDP_B_Reset
+
+    ld      c,VDP_Reset
+    DoVDPBIOS
+    ld      c,VDP_GoTextMode
+    DoVDPBIOS	
+	
+	call	BOOT_WriteBanner
 
 Greet:
 	ld		de,HelloWorld
@@ -165,278 +177,6 @@ InputLoopEnd:
 	ld		c,B_STROUT
 	DoBIOS
 	jp		GetInputString
-
-;;;;;;;;
-
-ConvertStringToHex8:
-; Convert the string in StringToHex_Source to a 8-bit hex value.
-	ld		ix,StringToHex_Source
-	ld		iy,StringToHex_Dest
-
-.DoConversion:
-.Digit0:
-	; Less than $40? Subtract $30.
-	; More than $40? Subtract $40.
-	ld		a,(ix+0)
-	cp		$40
-	jp		m,.Digit0_IsNumber
-
-.Digit0_IsAlpha:
-	add		a,-$37
-	sla		a
-	sla		a
-	sla		a
-	sla		a
-	ld		(iy+0),a
-	jr		.Digit1
-
-.Digit0_IsNumber:
-	add		a,-$30
-	sla		a
-	sla		a
-	sla		a
-	sla		a
-	ld		(iy+0),a
-	jr		.Digit1
-
-.Digit1:
-	; Less than $40? Subtract $30.
-	; More than $40? Subtract $40.
-	ld		a,(ix+1)
-	cp		$40
-	jp		m,.Digit1_IsNumber
-
-.Digit1_IsAlpha:
-	add		a,-$37
-	or		(iy+0)
-	ld		(iy+0),a
-	jr		.Done
-
-.Digit1_IsNumber:
-	add		a,-$30
-	or		(iy+0)
-	ld		(iy+0),a
-
-.Done:
-	ret
-
-;;;;;;;;
-ConvertStringToHex16:
-; Convert the string in StringToHex_Source to a 16-bit hex value.
-	ld		ix,StringToHex_Source
-	ld		iy,StringToHex_Dest
-
-	; Right-justify the value and add leading zeroes.
-.JustifyLoop:
-	ld		a,(ix+3)
-	cp		0
-	jr		nz,.DoConversion
-	ld		a,(ix+2)
-	ld		(ix+3),a
-	ld		a,(ix+1)
-	ld		(ix+2),a
-	ld		a,(ix+0)
-	ld		(ix+1),a
-	ld		a,$30		; ASCII 0
-	ld		(ix+0),a
-	jr		.JustifyLoop
-
-.DoConversion:
-.Digit0:
-	; Less than $40? Subtract $30.
-	; More than $40? Subtract $40.
-	ld		a,(ix+0)
-	cp		$40
-	jp		p,.Digit0_IsAlpha
-	jp		m,.Digit0_IsNumber
-
-.Digit0_IsAlpha:
-	add		a,-$37
-	sla		a
-	sla		a
-	sla		a
-	sla		a
-	ld		(iy+1),a
-	jr		.Digit1
-
-.Digit0_IsNumber:
-	add		a,-$30
-	sla		a
-	sla		a
-	sla		a
-	sla		a
-	ld		(iy+1),a
-	jr		.Digit1
-
-.Digit1:
-	; Less than $40? Subtract $30.
-	; More than $40? Subtract $40.
-	ld		a,(ix+1)
-	cp		$40
-	jp		p,.Digit1_IsAlpha
-	jp		m,.Digit1_IsNumber
-
-.Digit1_IsAlpha:
-	add		a,-$37
-	or		(iy+1)
-	ld		(iy+1),a
-	jr		.Digit2
-
-.Digit1_IsNumber:
-	add		a,-$30
-	or		(iy+1)
-	ld		(iy+1),a
-	jr		.Digit2
-
-.Digit2:
-	; Less than $40? Subtract $30.
-	; More than $40? Subtract $40.
-	ld		a,(ix+2)
-	cp		$40
-	jp		p,.Digit2_IsAlpha
-	jp		m,.Digit2_IsNumber
-
-.Digit2_IsAlpha:
-	add		a,-$37
-	sla		a
-	sla		a
-	sla		a
-	sla		a
-	ld		(iy+0),a
-	jr		.Digit3
-
-.Digit2_IsNumber:
-	add		a,-$30
-	sla		a
-	sla		a
-	sla		a
-	sla		a
-	ld		(iy+0),a
-	jr		.Digit3
-
-.Digit3:
-	; Less than $40? Subtract $30.
-	; More than $40? Subtract $40.
-	ld		a,(ix+3)
-	cp		$40
-	jp		p,.Digit3_IsAlpha
-	jp		m,.Digit3_IsNumber
-
-.Digit3_IsAlpha:
-	add		a,-$37
-	or		(iy+0)
-	ld		(iy+0),a
-	jr		.Done
-
-.Digit3_IsNumber:
-	add		a,-$30
-	or		(iy+0)
-	ld		(iy+0),a
-	jr		.Done
-
-.Done:
-	ret
-;;;;;;;;
-
-;;;;;;;;
-ConvertHex16ToString:
-	; Convert the value in HexToString_Source to ASCII characters.
-	ld		ix,HexToString_Source
-	ld		iy,HexToString_Dest
-
-	ld		hl,0
-	ld		(iy+0),l
-	ld		(iy+1),h
-	ld		(iy+2),l
-	ld		(iy+3),h
-
-	; A
-	ld		a,(ix+1)
-	and		$F0		; now we only have A
-	srl		a
-	srl		a
-	srl		a
-	srl		a
-	add  	a,$90
-	daa
-	adc  	a,$40
-	daa
-	ld		(iy+0),a
-
-	; B
-	ld		a,(ix+1)
-	and		$0F		; now we only have B
-	add  	a,$90
-	daa
-	adc  	a,$40
-	daa
-	ld		(iy+1),a
-
-	; C
-	ld		a,(ix)
-	and		$F0		; now we only have C
-	srl		a	
-	srl		a
-	srl 	a
-	srl 	a
-	add  	a,$90
-	daa
-	adc  	a,$40
-	daa
-	ld		(iy+2),a
-
-	; D
-	ld		a,(ix)
-	and		$0F		; now we only have D
-	add  	a,$90
-	daa
-	adc  	a,$40
-	daa
-	ld		(iy+3),a
-
-	ld		a,0
-	ld		(iy+4),a
-
-	ret
-
-;;;
-ConvertHex8ToString:
-	; Convert the value in HexToString_Source to ASCII characters.
-	; A
-	ld		iy,HexToString_Dest
-	ld		ix,HexToString_Source
-
-	ld		hl,0
-	ld		(iy+0),l
-	ld		(iy+1),h
-	ld		(iy+2),l
-	ld		(iy+3),h
-
-	ld		a,(ix)
-	and		$F0		; now we only have A
-	srl		a	
-	srl		a
-	srl 	a
-	srl 	a
-	add  	a,$90
-	daa
-	adc  	a,$40
-	daa
-	ld		(iy+0),a
-
-	; B
-	ld		a,(ix)
-	and		$0F		; now we only have B
-	add  	a,$90
-	daa
-	adc  	a,$40
-	daa
-	ld		(iy+1),a
-
-	ld		a,0
-	ld		(iy+2),a
-
-	ret
 
 ;;;;;;;;
 CmdDebugOutput:
@@ -562,6 +302,41 @@ ClearInputBuffer:
 
 	PAGE 1
 
+BOOT_WriteBanner:
+	ld		a,5
+	ld		e,5
+    ld      c,VDP_SetTextPosition
+    DoVDPBIOS
+	ld		hl,strBanner1
+	ld      c,VDP_StringOut
+    DoVDPBIOS
+
+	ld		a,9
+	ld		e,6
+    ld      c,VDP_SetTextPosition
+    DoVDPBIOS
+	ld		hl,strBanner2
+	ld      c,VDP_StringOut
+    DoVDPBIOS
+
+	ld		a,0
+	ld		e,20
+    ld      c,VDP_SetTextPosition
+    DoVDPBIOS
+	ld		hl,strBanner3
+	ld      c,VDP_StringOut
+    DoVDPBIOS
+
+    ld		a,10
+	ld		e,22
+    ld      c,VDP_SetTextPosition
+    DoVDPBIOS
+	ld		hl,strBanner4
+	ld      c,VDP_StringOut
+    DoVDPBIOS
+
+	ret
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Monitor_InterpretCommand:
 	; The Z80 version of a switch statement?
@@ -598,13 +373,6 @@ buffer_base:
 buffer_len:				db 0
 buffer_inputsize:		db 0
 buffer_Input:			ds 255	; 255 bytes of input storage
-
-;;;
-StringToHex_Source:		ds 16
-StringToHex_Dest:		ds 8
-
-HexToString_Source:		ds 4
-HexToString_Dest:		ds 4
 
 ;;;
 MemoryOutputStartAddr:	dw 0

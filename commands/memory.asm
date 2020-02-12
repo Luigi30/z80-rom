@@ -8,7 +8,9 @@ Monitor_CMD_Memory:
 	ld		hl,(MON_Argument1+2)
 	ld		(StringToHex_Source+2),hl
 
-	call	ConvertStringToHex16
+	;call	ConvertStringToHex16
+	ld		c,B_STRTOHEX16
+	DoProcyon
 	ld		hl,(StringToHex_Dest)
 	ld		(MemoryOutputStartAddr),hl
 
@@ -17,7 +19,10 @@ Monitor_CMD_Memory:
 	ld		(StringToHex_Source+0),hl
 	ld		hl,(MON_Argument2+2)
 	ld		(StringToHex_Source+2),hl
-	call	ConvertStringToHex16
+	;call	ConvertStringToHex16
+
+	ld		c,B_STRTOHEX16
+	DoProcyon
 
 	ld		hl,(StringToHex_Dest)
 	ld		(MemoryOutputEndAddr),hl
@@ -47,7 +52,11 @@ Monitor_DoMemoryLabel:
 	; Formatting: start address
 	ld		hl,(MemoryOutputCurAddr)
 	ld		(HexToString_Source),hl
-	call	ConvertHex16ToString
+	; call	ConvertHex16ToString
+
+	ld		c,B_HEX16TOSTR
+	DoProcyon
+
 	ld		de,HexToString_Dest
 	ld		c,B_STROUT
 	DoBIOS
@@ -68,7 +77,10 @@ Monitor_PrintBytes:
 	ld		a,(ix)						; A has a memory byte
 	ld		(HexToString_Source),a		
 	push	ix
-	call	ConvertHex8ToString			; Convert it to ASCII
+	; call	ConvertHex8ToString			; Convert it to ASCII
+
+	ld		c,B_HEX8TOSTR
+	DoProcyon
 
 	; Print two characters of output and a space
 	ld		a,(HexToString_Dest)

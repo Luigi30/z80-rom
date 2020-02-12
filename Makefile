@@ -4,7 +4,7 @@ BIN2HEX = ./bin2hex.py
 
 monitor: z80bios.rom hextest.hex
 
-z80bios.rom: z80bios.asm rc2014.asm strings.asm bios.inc commands/memory.asm commands/go.asm commands/upload.asm
+z80bios.rom: z80bios.asm rc2014.asm rc2014.inc strings.asm commands/memory.asm commands/go.asm commands/upload.asm
 	$(SJASM) z80bios.asm
 
 hextest.hex: hextest.asm

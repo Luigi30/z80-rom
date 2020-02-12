@@ -1,11 +1,17 @@
 	page 1
 
 BIOS_FnTable:
-	dw  B_Conout		; C = 0
-	dw	B_Strout		; C = 1
-	dw	B_Conin			; C = 2
-	dw	B_Constat		; C = 3
-	dw	B_Strin			; C = 4
+	dw	BIOS_Reset			; C = 0
+	dw  BIOS_Conout			; C = 1
+	dw	BIOS_Strout			; C = 2
+	dw	BIOS_Conin			; C = 3
+	dw	BIOS_Constat		; C = 4
+	dw	BIOS_Strin			; C = 5
+	
+	; dw	BIOS_StringToHex8	; C = 6
+	; dw	BIOS_StringToHex16	; C = 7
+	; dw	BIOS_Hex8ToString	; C = 8
+	; dw	BIOS_Hex16ToString	; C = 9
 
 ;;; rc2014_getc
 ;;; Wait for the UART to receive a character.
@@ -97,7 +103,7 @@ rc2014_sio_init:
 ;;;		Output words are in HL (todo: ?)
 ;;;
 ;;;		Do not assume any registers are preserved.
-B_Dispatch:
+BIOS_Dispatch:
 	;; Dispatch to the function number C.
 	push	de
 	push	af
@@ -120,9 +126,13 @@ B_Dispatch:
 	pop		de
 	jp		(hl)	; Jump to the BIOS function, which RETs back to where we started.
 	ret				; Unnecessary unless something breaks
-	
+
 ;;
-B_Conout:
+BIOS_Reset:
+	rst 	$00
+
+;;
+BIOS_Conout:
 	;; CONsole OUTput.
 	;; 
 	;; Input:
@@ -133,19 +143,19 @@ B_Conout:
 	ret
 
 ;;
-B_Strout:
+BIOS_Strout:
 	;; STRing OUTput.
 	;; Input:
 	;; DE - string address
 	;;
-	;; Perform B_Conout until a 0 is found in the string.
+	;; Perform BIOS_Conout until a 0 is found in the string.
 .loop1:
 	ld		a,(de)
 	cp		#0
 	jr		z,.loop2
 	push	de
 	ld		e,a
-	call	B_Conout
+	call	BIOS_Conout
 	pop		de
 	inc		de
 	jr		.loop1
@@ -154,7 +164,7 @@ B_Strout:
 	ret	
 ;;
 
-B_Conin:
+BIOS_Conin:
 	;; CONsole INput.
 	;;
 	;; Blocks until a character is available on the console.
@@ -165,7 +175,7 @@ B_Conin:
 	ret
 	;;
 
-B_Constat:
+BIOS_Constat:
 	;; CONsole STATus.
 	;;
 	;; Output:
@@ -175,7 +185,7 @@ B_Constat:
 	ld		a,l
 	ret
 
-B_Strin:
+BIOS_Strin:
 	;; Read string into buffer.
 	;; Buffer structure is as follows:
 	;;	db buffer_size		- how many characters are allowed

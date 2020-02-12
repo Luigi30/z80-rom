@@ -23,10 +23,10 @@ VDP_B_ColdStart:
 ;;;		Do not assume any registers are preserved.
 VDP_B_Dispatch:
 	;; Dispatch to the function number C.
-	push	de
-    push    bc
-	push	af
-    push    hl
+    ex      af
+    ld      iyl,c
+    exx
+    ld      c,iyl
 	ld		hl,VDP_FnTable_Public	; grab the jump table address
 	ld		d,0		; clear D
 	
@@ -39,13 +39,11 @@ VDP_B_Dispatch:
 	inc		hl
 	ld		d,(hl)
 
-	push    hl
+	push    de
     pop     ix
 
-    pop     hl
-	pop		af		; Restore AF, DE, BC.
-    pop     bc
-	pop		de
+    exx
+    ex      af
 	jp		(ix)	; Jump to the BIOS function, which RETs back to where we started.
 	ret				; Unnecessary unless something breaks
 
@@ -189,6 +187,76 @@ VDP_B_SetTextPosition:
     ex      de, hl                  ; send address to TMS
     call    VDP_B_SetVRAMAddress
     ret
+
+VDP_B_GoBitmapMode:
+    ; Set up Graphics II for a pixel-addressable bitmap.
+    ld      c,VDP_GoGraphics2
+    DoVDPBIOS
+
+    call    VDP_BI_SetupGraphicsIIColorTable
+    call    VDP_BI_SetupGraphicsIINameTable
+    ret
+
+; calculate address byte containing X/Y coordinate
+;       B = Y position
+;       C = X position
+;       returns address in DE
+VDP_B_GetPixelAddress:
+        ld      a, b                    ; d = (y / 8)
+        rrca
+        rrca
+        rrca
+        and     1fh
+        ld      d, a
+
+        ld      a, c                    ; e = (x & f8)
+        and     0f8h
+        ld      e, a
+
+        ld      a, b                    ; e += (y & 7)
+        and     7
+        or      e
+        ld      e, a
+        ret
+
+VDP_BI_SetupGraphicsIIColorTable:
+    ; Set up the color table.
+    ld      de,$2000
+    ld      c,VDP_SetVRAMAddress
+    DoVDPBIOS
+
+    ; Fill the color table.
+    ld      d,$18   ; outer loops
+    ld      b,0     ; 256 inner loops
+    ld      a,$F2   ; fg white, bg green
+.loop:
+    out     (VDP_PORT_VRAM),a
+    VRAMWait
+    djnz    .loop
+    dec     d
+    jr      nz,.loop
+    
+    ret
+
+VDP_BI_SetupGraphicsIINameTable:
+    ; Fill the nametable.
+    ; Write $00-$FF sequentially to VRAM 3 times.
+    ; Now the pattern table is a bitmap. Magic!
+
+    ld      de,$3800
+    ld      c,VDP_SetVRAMAddress
+    DoVDPBIOS
+
+    ld      d,3 ; outer loops
+    ld      b,0 ; 256 inner loops
+    ld      a,0 ; fg white, bg green
+.drawLoop1:
+    out     (VDP_PORT_VRAM),a
+    inc     a
+    defs    14/tmswait, 0         ; nops to waste time
+    djnz    .drawLoop1
+
+    ret
 	
 VDP_ASCIIFont:
     include "tms/tmsfont.asm"
@@ -238,6 +306,8 @@ VDP_B_FnTable:
     dw  VDP_B_VRAMBlockCopy         ; C = 7
     dw  VDP_B_StringOut             ; C = 8
     dw  VDP_B_SetTextPosition       ; C = 9
+    dw  VDP_B_GoBitmapMode          ; C = 10
+    dw  VDP_B_GetPixelAddress       ; C = 11
 
     PAGE 2
 VDP_ShadowRegs: ds 8   ; 8 bytes of shadow registers
@@ -245,4 +315,3 @@ VDP_ShadowRegs: ds 8   ; 8 bytes of shadow registers
     org $8400
 VDP_FnTable_Public: ds 256
 
-    PAGE 1

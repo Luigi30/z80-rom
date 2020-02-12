@@ -1,4 +1,4 @@
-Sjasm Z80 Assembler v0.42c - www.xl2s.tk             [2020.02.10 - 14:06:06]
+Sjasm Z80 Assembler v0.42c - www.xl2s.tk             [2020.02.12 - 02:36:39]
 
 hextest.asm
 Errors: 0
@@ -28,30 +28,37 @@ Errors: 0
       18.  00:9000  (00:0007)           VDP_VRAMBlockCopy           equ 7
       19.  00:9000  (00:0008)           VDP_StringOut               equ 8
       20.  00:9000  (00:0009)           VDP_SetTextPosition         equ 9
-      21.  00:9000                      
-      22.  00:9000                      MACRO	DoVDPBIOS	
-      23.  00:9000                    < 		rst	$28
-      24.  00:9000                    < ENDMACRO
-       6   00:9000                          include "bios.inc"
+      21.  00:9000  (00:000A)           VDP_GoBitmapMode            equ 10
+      22.  00:9000                      ; VDP_GetPixelAddress         equ 11
+      23.  00:9000                      
+      24.  00:9000                      MACRO	DoVDPBIOS	
+      25.  00:9000                    < 		rst	$28
+      26.  00:9000                    < ENDMACRO
+      27.  00:9000                      
+      28.  00:9000                      MACRO   VRAMWait
+      29.  00:9000                    <         defs    14/tmswait, 0         ; nops to waste time
+      30.  00:9000                    < ENDMACRO
+       6   00:9000                          include "rc2014.inc"
        1.  00:9000                      ; Function code equates.
-       2.  00:9000  (00:0000)           B_CONOUT        = 0
-       3.  00:9000  (00:0001)           B_STROUT        = 1
-       4.  00:9000  (00:0002)           B_CONIN         = 2
-       5.  00:9000  (00:0003)           B_CONSTAT       = 3
-       6.  00:9000  (00:0004)           B_STRIN         = 4
-       7.  00:9000                      
-       8.  00:9000                      ; Device IDs for BIOS functions
-       9.  00:9000  (00:0001)           DEV_AUX			= 1 ; RS-232.
-      10.  00:9000  (00:0002)           DEV_CON			= 2	; Console. Can be redirected.
-      11.  00:9000  (00:0005)           DEV_SCREEN		= 5	; Screen.
-      12.  00:9000                      
-      13.  00:9000                      MACRO	DoBIOS	
-      14.  00:9000                    < 		rst	$20
-      15.  00:9000                    < ENDMACRO
+       2.  00:9000  (00:0000)           B_RESET			= 0
+       3.  00:9000  (00:0001)           B_CONOUT        = 1
+       4.  00:9000  (00:0002)           B_STROUT        = 2
+       5.  00:9000  (00:0003)           B_CONIN         = 3
+       6.  00:9000  (00:0004)           B_CONSTAT       = 4
+       7.  00:9000  (00:0005)           B_STRIN         = 5
+       8.  00:9000                      
+       9.  00:9000                      ; Device IDs for BIOS functions
+      10.  00:9000  (00:0001)           DEV_AUX			= 1 ; RS-232.
+      11.  00:9000  (00:0002)           DEV_CON			= 2	; Console. Can be redirected.
+      12.  00:9000  (00:0005)           DEV_SCREEN		= 5	; Screen.
+      13.  00:9000                      
+      14.  00:9000                      MACRO	DoBIOS	
+      15.  00:9000                    < 		rst	$20
+      16.  00:9000                    < ENDMACRO
        7   00:9000                      
        8   00:9000                      START:
-       9   00:9000  11 2A 90                ld		de,HelloWorld
-      10   00:9003  0E 01               	ld		c,B_STROUT
+       9   00:9000  11 CB 90                ld		de,HelloWorld
+      10   00:9003  0E 02               	ld		c,B_STROUT
       11   00:9005                      	DoBIOS
       11   00:9005  E7                >   rst $20
       12   00:9006                      
@@ -60,91 +67,186 @@ Errors: 0
       15   00:9007  0E 00                   ld      c,VDP_Reset
       16   00:9009                          DoVDPBIOS
       16   00:9009  EF                >   rst $28
-      17   00:900A                      
-      18   00:900A  21 00 00                ld      hl,0
-      19   00:900D  0E 01                   ld      c,VDP_GoTextMode
-      20   00:900F                          DoVDPBIOS
-      20   00:900F  EF                >   rst $28
-      21   00:9010                      
-      22   00:9010  11 28 00                ld      de,40
-      23   00:9013  0E 04                   ld      c,VDP_SetVRAMAddress
-      24   00:9015                          DoVDPBIOS
-      24   00:9015  EF                >   rst $28
-      25   00:9016                      
-      26   00:9016  21 41 90                ld      hl,BannerData
-      27   00:9019  CD 1E 90                call    VDP_B_StringOut
-      28   00:901C                      
-      29   00:901C  FB                      ei
-      30   00:901D                      
-      31   00:901D  C9                      ret
-      32   00:901E                      
-      33   00:901E                          ; di
-      34   00:901E                      
-      35   00:901E                      
-      36   00:901E                          ; ld      de,40
-      37   00:901E                          ; call    VDP_SetVRAMAddress
-      38   00:901E                      
-      39   00:901E                          ; ld      a, 0                          ; put title at (1,0)
-      40   00:901E                          ; ld      e, 1
-      41   00:901E                          ; call    VDP_TextPosition
-      42   00:901E                          ; ld      hl,BannerData                  ; output title
-      43   00:901E                          ; call    VDP_StringOut
-      44   00:901E                          ; ei
-      45   00:901E                          ; ret
-      46   00:901E                      
-      47   00:901E                      ;;;;;;;;;;;;;;;;
-      48   00:901E                      
-      49   00:901E                      VDP_B_StringOut:
-      50   00:901E  7E                      ld      a, (hl)                 ; get the current byte from ram
-      51   00:901F  FE 00                   cp      0                       ; return when NULL is encountered
-      52   00:9021  C8                      ret     z
-      53   00:9022  D3 98                   out     (VDP_PORT_VRAM), a             ; send it to vram
-      54   00:9024  00 (3)                  defs    14/tmswait, 0         ; nops to waste time
-      55   00:9027  23                      inc     hl                      ; next byte
-      56   00:9028  18 F4                   jr      VDP_B_StringOut
-      57   00:902A                      
-      58   00:902A                      HelloWorld:
-      59   00:902A                      	db	    "TMS9918 ASCII Thingy",13,10,0
-      59   00:902A  54 4D 53 39 39 31 38 20 41 53 43 49 49 20 54 68 
-      59   00:903A  69 6E 67 79 0D 0A 00 
-      60   00:9041                      
-      61   00:9041                      BannerData:
-      62   00:9041                          db      "****************************************"
-      62   00:9041  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
-      62   00:9051  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
-      62   00:9061  2A 2A 2A 2A 2A 2A 2A 2A 
-      63   00:9069                          db      "* P R O C Y O N / 8 0    M O N I T O R *"
-      63   00:9069  2A 20 50 20 52 20 4F 20 43 20 59 20 4F 20 4E 20 
-      63   00:9079  2F 20 38 20 30 20 20 20 20 4D 20 4F 20 4E 20 49 
-      63   00:9089  20 54 20 4F 20 52 20 2A 
-      64   00:9091                          db      "*                                      *"
-      64   00:9091  2A 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
-      64   00:90A1  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
-      64   00:90B1  20 20 20 20 20 20 20 2A 
-      65   00:90B9                          db      "*  Official Operating System of 1979!  *"
-      65   00:90B9  2A 20 20 4F 66 66 69 63 69 61 6C 20 4F 70 65 72 
-      65   00:90C9  61 74 69 6E 67 20 53 79 73 74 65 6D 20 6F 66 20 
-      65   00:90D9  31 39 37 39 21 20 20 2A 
-      66   00:90E1                          db      "*                                      *"
-      66   00:90E1  2A 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
-      66   00:90F1  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
-      66   00:9101  20 20 20 20 20 20 20 2A 
-      67   00:9109                          db      "*      VDP Routine Test Program 1      *"
-      67   00:9109  2A 20 20 20 20 20 20 56 44 50 20 52 6F 75 74 69 
-      67   00:9119  6E 65 20 54 65 73 74 20 50 72 6F 67 72 61 6D 20 
-      67   00:9129  31 20 20 20 20 20 20 2A 
-      68   00:9131                          db      "****************************************"
-      68   00:9131  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
-      68   00:9141  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
-      68   00:9151  2A 2A 2A 2A 2A 2A 2A 2A 
-      69   00:9159  00                      db      0
-      70   00:915A                      
-      71   00:915A                      VDP_DefaultRegisters:
-      72   00:915A                          ; Blanking, 16KB VRAM
-      73   00:915A                          db      $00, $80, $00, $00, $00, $00, $00, $00
-      73   00:915A  00 80 00 00 00 00 00 00 
-      74   00:9162                      
-      75   00:9162  00 (8)              VDP_ShadowRegs: ds 8   ; 8 bytes of shadow registers
+      17   00:900A  0E 01                   ld      c,VDP_GoTextMode
+      18   00:900C                          DoVDPBIOS
+      18   00:900C  EF                >   rst $28
+      19   00:900D                      	
+      20   00:900D  3E 05               	ld		a,5
+      21   00:900F  1E 05               	ld		e,5
+      22   00:9011  0E 09                   ld      c,VDP_SetTextPosition
+      23   00:9013                          DoVDPBIOS
+      23   00:9013  EF                >   rst $28
+      24   00:9014  21 68 90            	ld		hl,strBanner1
+      25   00:9017  0E 08               	ld      c,VDP_StringOut
+      26   00:9019                          DoVDPBIOS
+      26   00:9019  EF                >   rst $28
+      27   00:901A                      
+      28   00:901A  3E 09               	ld		a,9
+      29   00:901C  1E 06               	ld		e,6
+      30   00:901E  0E 09                   ld      c,VDP_SetTextPosition
+      31   00:9020                          DoVDPBIOS
+      31   00:9020  EF                >   rst $28
+      32   00:9021  21 88 90            	ld		hl,strBanner2
+      33   00:9024  0E 08               	ld      c,VDP_StringOut
+      34   00:9026                          DoVDPBIOS
+      34   00:9026  EF                >   rst $28
+      35   00:9027                      
+      36   00:9027  3E 00               	ld		a,0
+      37   00:9029  1E 14               	ld		e,20
+      38   00:902B  0E 09                   ld      c,VDP_SetTextPosition
+      39   00:902D                          DoVDPBIOS
+      39   00:902D  EF                >   rst $28
+      40   00:902E  21 A0 90            	ld		hl,strBanner3
+      41   00:9031  0E 08               	ld      c,VDP_StringOut
+      42   00:9033                          DoVDPBIOS
+      42   00:9033  EF                >   rst $28
+      43   00:9034                      
+      44   00:9034  3E 0A                   ld		a,10
+      45   00:9036  1E 16               	ld		e,22
+      46   00:9038  0E 09                   ld      c,VDP_SetTextPosition
+      47   00:903A                          DoVDPBIOS
+      47   00:903A  EF                >   rst $28
+      48   00:903B  21 B4 90            	ld		hl,strBanner4
+      49   00:903E  0E 08               	ld      c,VDP_StringOut
+      50   00:9040                          DoVDPBIOS
+      50   00:9040  EF                >   rst $28
+      51   00:9041                      
+      52   00:9041                          ; ld      c,VDP_Reset
+      53   00:9041                          ; DoVDPBIOS
+      54   00:9041                          ; ld      c,VDP_GoBitmapMode
+      55   00:9041                          ; DoVDPBIOS
+      56   00:9041                      
+      57   00:9041                          ; ; Set address...
+      58   00:9041                          ; ld      b,16
+      59   00:9041                          ; ld      c,$20
+      60   00:9041                          ; call    VDP_GetPixelAddress
+      61   00:9041                          ; ld      c,VDP_SetVRAMAddress
+      62   00:9041                          ; DoVDPBIOS
+      63   00:9041                          ; ; Draw a vertical strip...
+      64   00:9041                          ; ld      b,8
+      65   00:9041                          ; ld      a,%11110000
+      66   00:9041                          ; call    VDP_DrawVerticalStrip
+      67   00:9041                          ; ; Set address...
+      68   00:9041                          ; ld      b,24
+      69   00:9041                          ; ld      c,$20
+      70   00:9041                          ; call    VDP_GetPixelAddress
+      71   00:9041                          ; ld      c,VDP_SetVRAMAddress
+      72   00:9041                          ; DoVDPBIOS
+      73   00:9041                          ; ; Draw a vertical strip...
+      74   00:9041                          ; ld      b,8
+      75   00:9041                          ; ld      a,%11110000
+      76   00:9041                          ; call    VDP_DrawVerticalStrip
+      77   00:9041                          ; ; Set address...
+      78   00:9041                          ; ld      b,32
+      79   00:9041                          ; ld      c,$20
+      80   00:9041                          ; call    VDP_GetPixelAddress
+      81   00:9041                          ; ld      c,VDP_SetVRAMAddress
+      82   00:9041                          ; DoVDPBIOS
+      83   00:9041                          ; ; Draw a vertical strip...
+      84   00:9041                          ; ld      b,8
+      85   00:9041                          ; ld      a,%11110000
+      86   00:9041                          ; call    VDP_DrawVerticalStrip
+      87   00:9041                      
+      88   00:9041  FB                      ei
+      89   00:9042                      
+      90   00:9042  C9                      ret
+      91   00:9043                      
+      92   00:9043                      ;;;;;;;;;;;;;;;;
+      93   00:9043                      
+      94   00:9043                      VDP_DrawVerticalStrip:
+      95   00:9043                          ; Graphics II mode vertical strip.
+      96   00:9043                          ; VRAM address should be set before calling this function.
+      97   00:9043                          ; Inputs:
+      98   00:9043                          ; A - pixel mask to use
+      99   00:9043                          ; B - height
+     100   00:9043  D3 98                   out     (VDP_PORT_VRAM),a
+     101   00:9045                          VRAMWait
+     101   00:9045  00 (3)            >         defs    14/tmswait, 0
+     102   00:9048  10 F9                   djnz    VDP_DrawVerticalStrip
+     103   00:904A  C9                      ret
+     104   00:904B                      
+     105   00:904B                      VDP_GetPixelAddress:
+     106   00:904B  78                          ld      a, b                    ; d = (y / 8)
+     107   00:904C  0F                          rrca
+     108   00:904D  0F                          rrca
+     109   00:904E  0F                          rrca
+     110   00:904F  E6 1F                       and     1fh
+     111   00:9051  57                          ld      d, a
+     112   00:9052                      
+     113   00:9052  79                          ld      a, c                    ; e = (x & f8)
+     114   00:9053  E6 F8                       and     0f8h
+     115   00:9055  5F                          ld      e, a
+     116   00:9056                      
+     117   00:9056  78                          ld      a, b                    ; e += (y & 7)
+     118   00:9057  E6 07                       and     7
+     119   00:9059  B3                          or      e
+     120   00:905A  5F                          ld      e, a
+     121   00:905B  C9                          ret
+     122   00:905C                      
+     123   00:905C                      VDP_B_StringOut:
+     124   00:905C  7E                      ld      a, (hl)                 ; get the current byte from ram
+     125   00:905D  FE 00                   cp      0                       ; return when NULL is encountered
+     126   00:905F  C8                      ret     z
+     127   00:9060  D3 98                   out     (VDP_PORT_VRAM), a             ; send it to vram
+     128   00:9062  00 (3)                  defs    14/tmswait, 0         ; nops to waste time
+     129   00:9065  23                      inc     hl                      ; next byte
+     130   00:9066  18 F4                   jr      VDP_B_StringOut
+     131   00:9068                      
+     132   00:9068                      strBanner1:
+     133   00:9068                      	dz	"Procyon/80 ROM BIOS and Monitor"
+     133   00:9068  50 72 6F 63 79 6F 6E 2F 38 30 20 52 4F 4D 20 42 
+     133   00:9078  49 4F 53 20 61 6E 64 20 4D 6F 6E 69 74 6F 72 00 
+     134   00:9088                      
+     135   00:9088                      strBanner2:
+     136   00:9088                      	dz	"Software by LuigiThirty"
+     136   00:9088  53 6F 66 74 77 61 72 65 20 62 79 20 4C 75 69 67 
+     136   00:9098  69 54 68 69 72 74 79 00 
+     137   00:90A0                      
+     138   00:90A0                      strBanner3:
+     139   00:90A0                      	dz	"Revision 02/12/1979"
+     139   00:90A0  52 65 76 69 73 69 6F 6E 20 30 32 2F 31 32 2F 31 
+     139   00:90B0  39 37 39 00 
+     140   00:90B4                      
+     141   00:90B4                      strBanner4:
+     142   00:90B4                      	dz	"here, it's always 1979"
+     142   00:90B4  68 65 72 65 2C 20 69 74 27 73 20 61 6C 77 61 79 
+     142   00:90C4  73 20 31 39 37 39 00 
+     143   00:90CB                      
+     144   00:90CB                      HelloWorld:
+     145   00:90CB                      	db	    "TMS9918 ASCII Thingy",13,10,0
+     145   00:90CB  54 4D 53 39 39 31 38 20 41 53 43 49 49 20 54 68 
+     145   00:90DB  69 6E 67 79 0D 0A 00 
+     146   00:90E2                      
+     147   00:90E2                      BannerData:
+     148   00:90E2                          db      "****************************************"
+     148   00:90E2  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
+     148   00:90F2  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
+     148   00:9102  2A 2A 2A 2A 2A 2A 2A 2A 
+     149   00:910A                          db      "* P R O C Y O N / 8 0    M O N I T O R *"
+     149   00:910A  2A 20 50 20 52 20 4F 20 43 20 59 20 4F 20 4E 20 
+     149   00:911A  2F 20 38 20 30 20 20 20 20 4D 20 4F 20 4E 20 49 
+     149   00:912A  20 54 20 4F 20 52 20 2A 
+     150   00:9132                          db      "*                                      *"
+     150   00:9132  2A 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
+     150   00:9142  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
+     150   00:9152  20 20 20 20 20 20 20 2A 
+     151   00:915A                          db      "*  Official Operating System of 1979!  *"
+     151   00:915A  2A 20 20 4F 66 66 69 63 69 61 6C 20 4F 70 65 72 
+     151   00:916A  61 74 69 6E 67 20 53 79 73 74 65 6D 20 6F 66 20 
+     151   00:917A  31 39 37 39 21 20 20 2A 
+     152   00:9182                          db      "*                                      *"
+     152   00:9182  2A 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
+     152   00:9192  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
+     152   00:91A2  20 20 20 20 20 20 20 2A 
+     153   00:91AA                          db      "*      VDP Routine Test Program 1      *"
+     153   00:91AA  2A 20 20 20 20 20 20 56 44 50 20 52 6F 75 74 69 
+     153   00:91BA  6E 65 20 54 65 73 74 20 50 72 6F 67 72 61 6D 20 
+     153   00:91CA  31 20 20 20 20 20 20 2A 
+     154   00:91D2                          db      "****************************************"
+     154   00:91D2  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
+     154   00:91E2  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
+     154   00:91F2  2A 2A 2A 2A 2A 2A 2A 2A 
+     155   00:91FA  00                      db      0
 
     LABELS
 -------------------------------------------------
@@ -157,26 +259,32 @@ Errors: 0
 00:00000001   VDP_GoTextMode
 00:00000002 X VDP_GoGraphics1
 00:00000003 X VDP_GoGraphics2
-00:00000004   VDP_SetVRAMAddress
+00:00000004 X VDP_SetVRAMAddress
 00:00000005 X VDP_SetRegistersFromArray
 00:00000006 X VDP_SetRegister
 00:00000007 X VDP_VRAMBlockCopy
-00:00000008 X VDP_StringOut
-00:00000009 X VDP_SetTextPosition
-00:00000000 X B_CONOUT
-00:00000001   B_STROUT
-00:00000002 X B_CONIN
-00:00000003 X B_CONSTAT
-00:00000004 X B_STRIN
+00:00000008   VDP_StringOut
+00:00000009   VDP_SetTextPosition
+00:0000000A X VDP_GoBitmapMode
+00:00000000 X B_RESET
+00:00000001 X B_CONOUT
+00:00000002   B_STROUT
+00:00000003 X B_CONIN
+00:00000004 X B_CONSTAT
+00:00000005 X B_STRIN
 00:00000001 X DEV_AUX
 00:00000002 X DEV_CON
 00:00000005 X DEV_SCREEN
 00:00009000 X START
-00:0000901E   VDP_B_StringOut
-00:0000902A   HelloWorld
-00:00009041   BannerData
-00:0000915A X VDP_DefaultRegisters
-00:00009162 X VDP_ShadowRegs
+00:00009043   VDP_DrawVerticalStrip
+00:0000904B X VDP_GetPixelAddress
+00:0000905C   VDP_B_StringOut
+00:00009068   strBanner1
+00:00009088   strBanner2
+00:000090A0   strBanner3
+00:000090B4   strBanner4
+00:000090CB   HelloWorld
+00:000090E2 X BannerData
 
 
  Output: hextest.out
@@ -191,7 +299,7 @@ Errors: 0
 -------------------------------------------------
 
  Page: 00
-  Org: 00009000  Size: *  Used: 0000016A
+  Org: 00009000  Size: *  Used: 000001FB
 
    Address   Length Align   Label
-   00009000     362         START
+   00009000     507         START

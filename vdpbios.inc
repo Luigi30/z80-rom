@@ -18,7 +18,13 @@ VDP_SetRegister             equ 6
 VDP_VRAMBlockCopy           equ 7
 VDP_StringOut               equ 8
 VDP_SetTextPosition         equ 9
+VDP_GoBitmapMode            equ 10
+; VDP_GetPixelAddress         equ 11
 
 MACRO	DoVDPBIOS	
 		rst	$28
+ENDMACRO
+
+MACRO   VRAMWait
+        defs    14/tmswait, 0         ; nops to waste time
 ENDMACRO

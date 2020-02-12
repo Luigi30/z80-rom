@@ -7,7 +7,11 @@ Monitor_CMD_Go:
 	ld		hl,(MON_Argument1+2)
 	ld		(StringToHex_Source+2),hl
 
-	call	ConvertStringToHex16
+	; call	ConvertStringToHex16
+
+	ld		c,B_STRTOHEX16
+	DoProcyon
+
 	ld		hl,(StringToHex_Dest)
     jp      (hl)
 

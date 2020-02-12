@@ -64,7 +64,11 @@ HEX_GetASCIIByteValue:
     DoBIOS
 	ld		(StringToHex_Source+1),a
 
-	call	ConvertStringToHex8
+	; call	ConvertStringToHex8
+
+	ld		c,B_STRTOHEX8
+	DoProcyon
+
 	ld		a,(StringToHex_Dest)
     ret
 

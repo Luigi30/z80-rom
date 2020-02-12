@@ -1,9 +1,10 @@
 ; Function code equates.
-B_CONOUT        = 0
-B_STROUT        = 1
-B_CONIN         = 2
-B_CONSTAT       = 3
-B_STRIN         = 4
+B_RESET			= 0
+B_CONOUT        = 1
+B_STROUT        = 2
+B_CONIN         = 3
+B_CONSTAT       = 4
+B_STRIN         = 5
 
 ; Device IDs for BIOS functions
 DEV_AUX			= 1 ; RS-232.
