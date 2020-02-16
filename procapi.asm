@@ -3,10 +3,10 @@
     PAGE 1
 
 PROCYON_B_FnTable:
-	dw	PROCYON_StringToHex8	; C = 0
-	dw	PROCYON_StringToHex16	; C = 1
-	dw	PROCYON_Hex8ToString	; C = 2
-	dw	PROCYON_Hex16ToString	; C = 3
+	jp	PROCYON_StringToHex8	; C = 0
+	jp	PROCYON_StringToHex16	; C = 1
+	jp	PROCYON_Hex8ToString	; C = 2
+	jp	PROCYON_Hex16ToString	; C = 3
 
 PROCYON_B_ColdStart:
     ; Copy the table from PROCYON_B_FnTable to the public table in RAM.
@@ -17,48 +17,12 @@ PROCYON_B_ColdStart:
 
     ret
     
-;;; ;;;;;;;;;;;;;;;;;
-;;; Procyon API functions
-;;;
-;;; API:
-;;;		All Procyon API functions are prefixed with PROCYON_B_
-;;; 	Input is A, BC, DE, HL
-;;;		Output bytes are in A
-;;;		Output words are in HL (todo: ?)
-;;;
-;;;		Do not assume any registers are preserved.
-PROCYON_B_Dispatch:
-	;; Dispatch to the function number C.
-    ex      af
-    ld      iyl,c
-    exx
-    ld      c,iyl
-	ld		hl,PROCYON_FnTable_Public	; grab the jump table address
-	ld		d,0		; clear D
-	
-	sla		c		; shift C to produce a table offset
-	ld		e,c		; E <- C
-	add		hl,de	; Apply the offset.
-
-	ld		a,(hl)	; Get the destination address. 
-	ld		e,a
-	inc		hl
-	ld		d,(hl)
-
-	push    de
-    pop     ix
-
-    exx
-    ex      af
-	jp		(ix)	; Jump to the BIOS function, which RETs back to where we started.
-	ret				; Unnecessary unless something breaks
-
 ;;;;;;;;;;;;;;;;;;;;
 
 PROCYON_StringToHex8:
 ; Convert the string in StringToHex_Source to a 8-bit hex value.
-	ld		ix,StringToHex_Source
-	ld		iy,StringToHex_Dest
+	ld		ix,_StringToHex_Source
+	ld		iy,_StringToHex_Dest
 
 .DoConversion:
 .Digit0:
@@ -110,8 +74,8 @@ PROCYON_StringToHex8:
 ;;;;;;;;;;;
 PROCYON_StringToHex16:
 ; Convert the string in StringToHex_Source to a 16-bit hex value.
-	ld		ix,StringToHex_Source
-	ld		iy,StringToHex_Dest
+	ld		ix,_StringToHex_Source
+	ld		iy,_StringToHex_Dest
 
 	; Right-justify the value and add leading zeroes.
 .JustifyLoop:
@@ -228,8 +192,8 @@ PROCYON_StringToHex16:
 PROCYON_Hex8ToString:
 	; Convert the value in HexToString_Source to ASCII characters.
 	; A
-	ld		iy,HexToString_Dest
-	ld		ix,HexToString_Source
+	ld		iy,_HexToString_Dest
+	ld		ix,_HexToString_Source
 
 	ld		hl,0
 	ld		(iy+0),l
@@ -266,8 +230,8 @@ PROCYON_Hex8ToString:
 ;;;
 PROCYON_Hex16ToString:
 	; Convert the value in HexToString_Source to ASCII characters.
-	ld		ix,HexToString_Source
-	ld		iy,HexToString_Dest
+	ld		ix,_HexToString_Source
+	ld		iy,_HexToString_Dest
 
 	ld		hl,0
 	ld		(iy+0),l
@@ -324,13 +288,12 @@ PROCYON_Hex16ToString:
 
 	ret
 
-	PAGE 2
+	org	PROCAPI_DATA_BASE
 ;;;
-StringToHex_Source:		ds 16
-StringToHex_Dest:		ds 8
+_StringToHex_Source:	ds 16	; 0
+_StringToHex_Dest:		ds 8	; 16
+_HexToString_Source:	ds 4	; 24
+_HexToString_Dest:		ds 4	; 28
 
-HexToString_Source:		ds 4
-HexToString_Dest:		ds 4
-
-    org $8500
+    org PROCYON_PUBLIC_API_BASE
 PROCYON_FnTable_Public: ds 256

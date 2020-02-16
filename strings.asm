@@ -20,6 +20,9 @@ strDbgArg:
 strCmdUnknown:
     dz  "*** Unrecognized command"
 
+strCmdArgumentError:
+	dz  "*** Argument error"
+
 strBanner1:
 	dz	"Procyon/80 ROM BIOS and Monitor"
 
@@ -27,7 +30,7 @@ strBanner2:
 	dz	"Software by LuigiThirty"
 
 strBanner3:
-	dz	"Revision 02/12/1979"
+	dz	"Revision 02/13/1979"
 
 strBanner4:
 	dz	"here, it's always 1979"

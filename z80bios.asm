@@ -58,14 +58,14 @@ RST20:	jp	BIOS_Dispatch	; 0x20
 		nop
 		nop
 
-RST28:	jp	VDP_B_Dispatch	; 0x28
+RST28:	nop	; 0x28
 		nop
 		nop
 		nop
 		nop
 		nop
 	
-RST30:	jp	PROCYON_B_Dispatch	; 0x30
+RST30:	nop	; 0x30
 		nop
 		nop
 		nop
@@ -98,16 +98,17 @@ Start:
 	ld		hl,$FFF9	; initialize stack
 	ld		sp,hl
 
-	; Clear $9000
-	ld		b,0
-	ld		de,$0000
-	ld		hl,$9000
-	ld		a,0
-ClearSRAM:
+    ; Clear RAM
+	ld		hl,$8000
+    ld      d,$7F   ; outer loops
+    ld      b,0     ; 256 inner loops
+    ld      a,$00   ; fg white, bg black
+.loop:
 	ld		(hl),a
 	inc		hl
-	inc		a
-	djnz	ClearSRAM	
+    djnz    .loop
+    dec     d
+    jr      nz,.loop
 
 	di
 	call	rc2014_sio_init
@@ -118,10 +119,8 @@ ClearSRAM:
 	; Set up the VDP
 	call	VDP_B_ColdStart
 
-    ld      c,VDP_Reset
-    DoVDPBIOS
-    ld      c,VDP_GoTextMode
-    DoVDPBIOS	
+	VDPBIOS	VDP_Reset
+    VDPBIOS VDP_GoTextMode	
 	
 	call	BOOT_WriteBanner
 
@@ -164,7 +163,7 @@ CheckCmdLength:
 GotCmdLength:
 	ld		b,10
 	call	GetArgument
-	call	CmdDebugOutput
+	; call	CmdDebugOutput
 
 	call	Monitor_InterpretCommand
 
@@ -172,10 +171,6 @@ GotCmdLength:
 InputLoopEnd:
 	ld		de,strCRLF
 	ld		c,B_STROUT
-	DoBIOS
-	ld		de,strCRLF
-	ld		c,B_STROUT
-	DoBIOS
 	jp		GetInputString
 
 ;;;;;;;;
@@ -299,42 +294,43 @@ ClearInputBuffer:
 	include "commands/memory.asm"
 	include "commands/go.asm"
 	include "commands/upload.asm"
+	include "commands/in.asm"
+	include "commands/out.asm"
 
 	PAGE 1
 
 BOOT_WriteBanner:
 	ld		a,5
 	ld		e,5
-    ld      c,VDP_SetTextPosition
-    DoVDPBIOS
+    VDPBIOS	VDP_SetTextPosition
+    
 	ld		hl,strBanner1
-	ld      c,VDP_StringOut
-    DoVDPBIOS
+	VDPBIOS VDP_StringOut
+    
 
 	ld		a,9
 	ld		e,6
-    ld      c,VDP_SetTextPosition
-    DoVDPBIOS
+    VDPBIOS	VDP_SetTextPosition
+    
 	ld		hl,strBanner2
-	ld      c,VDP_StringOut
-    DoVDPBIOS
+	VDPBIOS	VDP_StringOut
+    
 
 	ld		a,0
 	ld		e,20
-    ld      c,VDP_SetTextPosition
-    DoVDPBIOS
+    VDPBIOS	VDP_SetTextPosition
+    
 	ld		hl,strBanner3
-	ld      c,VDP_StringOut
-    DoVDPBIOS
+	VDPBIOS	VDP_StringOut
+    
 
     ld		a,10
 	ld		e,22
-    ld      c,VDP_SetTextPosition
-    DoVDPBIOS
+    VDPBIOS	VDP_SetTextPosition
+    
 	ld		hl,strBanner4
-	ld      c,VDP_StringOut
-    DoVDPBIOS
-
+	VDPBIOS	VDP_StringOut
+    
 	ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -356,6 +352,12 @@ Monitor_InterpretCommand:
 
 	cp		"U"
 	jp		z,Monitor_CMD_Upload
+
+	cp		"I"
+	jp		z,Monitor_CMD_In
+
+	cp		"O"
+	jp		z,Monitor_CMD_Out
 
 	ld		de,strCmdUnknown
 	ld		c,B_STROUT

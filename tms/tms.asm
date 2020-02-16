@@ -333,11 +333,11 @@ tmsxyaddr:
         rrca
         rrca
         rrca
-        and     1fh
+        and     $1F
         ld      d, a
 
         ld      a, c                    ; e = (x & f8)
-        and     0f8h
+        and     $F8
         ld      e, a
 
         ld      a, b                    ; e += (y & 7)

@@ -1,3 +1,5 @@
+    PAGE 1
+
 ; Monitor's U command
 ; Upload a HEX file somewhere in memory
 Monitor_CMD_Upload:
@@ -59,17 +61,13 @@ HEX_GetASCIIByteValue:
     ; Get two ASCII characters, convert them to a byte value, and return it in A.
     ld		c,B_CONIN
     DoBIOS
-	ld		(StringToHex_Source+0),a
+	ld		(STRINGTOHEX_SRC+0),a
     ld		c,B_CONIN
     DoBIOS
-	ld		(StringToHex_Source+1),a
+	ld		(STRINGTOHEX_SRC+1),a
+	call	PROCYON_StringToHex8
 
-	; call	ConvertStringToHex8
-
-	ld		c,B_STRTOHEX8
-	DoProcyon
-
-	ld		a,(StringToHex_Dest)
+	ld		a,(STRINGTOHEX_DEST)
     ret
 
 HEX_AwaitStartCode:
@@ -114,7 +112,6 @@ HEX_ReceiveRecord:
     add     b       ; Checksum calculation
     ld      b,a     ; Store checksum in B
     exx
-
 
     push    hl
     call    HEX_GetASCIIByteValue
@@ -186,7 +183,7 @@ HEX_Checksum:       db 0    ; BYTE  - Checksum of the record.
 HEX_RecordData:     ds 64   ; ARRAY - The record's contents.
 
     PAGE 1
-STR_HEX_ReadyToReceive:     db "Ready to receive HEX. Ensure 3ms delay per character.",13,10,0
+STR_HEX_ReadyToReceive:     db "Ready to receive HEX...",13,10,0
 STR_HEX_Debug_GotStart:     db "Got start code",13,10,0
 STR_HEX_Debug_GotLength:    db "Got rec length",13,10,0
 STR_HEX_Debug_GotAddr:      db "Got rec address",13,10,0

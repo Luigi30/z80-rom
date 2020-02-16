@@ -8,62 +8,27 @@ VDP_B_ColdStart:
     ld  de,VDP_FnTable_Public
     ld  hl,VDP_B_FnTable
     ldir
-
     ret
-    
-;;; ;;;;;;;;;;;;;;;;;
-;;; VDP functions
-;;;
-;;; API:
-;;;		All VDP BIOS functions are prefixed with VDP_B_
-;;; 	Input is A, BC, DE, HL
-;;;		Output bytes are in A
-;;;		Output words are in HL (todo: ?)
-;;;
-;;;		Do not assume any registers are preserved.
-VDP_B_Dispatch:
-	;; Dispatch to the function number C.
-    ex      af
-    ld      iyl,c
-    exx
-    ld      c,iyl
-	ld		hl,VDP_FnTable_Public	; grab the jump table address
-	ld		d,0		; clear D
-	
-	sla		c		; shift C to produce a table offset
-	ld		e,c		; E <- C
-	add		hl,de	; Apply the offset.
-
-	ld		a,(hl)	; Get the destination address. 
-	ld		e,a
-	inc		hl
-	ld		d,(hl)
-
-	push    de
-    pop     ix
-
-    exx
-    ex      af
-	jp		(ix)	; Jump to the BIOS function, which RETs back to where we started.
-	ret				; Unnecessary unless something breaks
 
 ; copy a null-terminated string to VRAM
 ;       HL = ram source address
 VDP_B_StringOut:
+.loop:
     ld      a, (hl)                 ; get the current byte from ram
     cp      0                       ; return when NULL is encountered
     ret     z
     out     (VDP_PORT_VRAM), a             ; send it to vram
     defs    14/tmswait, 0         ; nops to waste time
     inc     hl                      ; next byte
-    jr      VDP_B_StringOut
+    jr      .loop
+    ret
 
 VDP_B_VRAMBlockCopy:
 ; copy bytes from ram to vram
 ;       HL = ram source address
 ;       DE = vram destination address
 ;       BC = byte count
-    call    VDP_B_SetVRAMAddress      ; set the starting address
+    call    VDP_B_SetVRAMWriteAddress   ; set the starting address
 .copyloop:
     ld      a, (hl)                 ; get the current byte from ram
     out     (VDP_PORT_VRAM), a           ; send it to vram
@@ -109,7 +74,7 @@ VDP_B_SetRegistersFromArray:
 
 ; set the next address of vram to write
 ;   DE = address
-VDP_B_SetVRAMAddress:
+VDP_B_SetVRAMWriteAddress:
     ld      a, e                    ; send lsb
     out     (VDP_PORT_REGS), a
     ld      a, d                    ; mask off msb to max of 16KB
@@ -124,7 +89,7 @@ VDP_B_Reset:
     call    VDP_B_SetRegistersFromArray
 
     ld      de,0
-    call    VDP_B_SetVRAMAddress
+    call    VDP_B_SetVRAMWriteAddress
 
     ld      de, $4000               ; write 16KB
     ld      bc, VDP_PORT_VRAM       ; writing 0s to vram
@@ -185,14 +150,12 @@ VDP_B_SetTextPosition:
     ld      e, a
     add     hl, de                  ; add column for final address
     ex      de, hl                  ; send address to TMS
-    call    VDP_B_SetVRAMAddress
+    call    VDP_B_SetVRAMWriteAddress
     ret
 
 VDP_B_GoBitmapMode:
     ; Set up Graphics II for a pixel-addressable bitmap.
-    ld      c,VDP_GoGraphics2
-    DoVDPBIOS
-
+    VDPBIOS VDP_GoGraphics2
     call    VDP_BI_SetupGraphicsIIColorTable
     call    VDP_BI_SetupGraphicsIINameTable
     ret
@@ -206,11 +169,11 @@ VDP_B_GetPixelAddress:
         rrca
         rrca
         rrca
-        and     1fh
+        and     $1F
         ld      d, a
 
         ld      a, c                    ; e = (x & f8)
-        and     0f8h
+        and     $F8
         ld      e, a
 
         ld      a, b                    ; e += (y & 7)
@@ -219,16 +182,25 @@ VDP_B_GetPixelAddress:
         ld      e, a
         ret
 
+; set the next address of vram to read
+;       DE = address
+VDP_B_SetVRAMReadAddress:
+    ld      a, e                    ; send lsb
+    out     (VDP_PORT_REGS), a
+    ld      a, d                    ; mask off msb to max of 16KB
+    and     $3F
+    out     (VDP_PORT_REGS), a      ; send msb
+    ret
+
 VDP_BI_SetupGraphicsIIColorTable:
     ; Set up the color table.
     ld      de,$2000
-    ld      c,VDP_SetVRAMAddress
-    DoVDPBIOS
+    VDPBIOS VDP_SetVRAMWriteAddress
 
     ; Fill the color table.
     ld      d,$18   ; outer loops
     ld      b,0     ; 256 inner loops
-    ld      a,$F2   ; fg white, bg green
+    ld      a,$F0   ; fg white, bg black
 .loop:
     out     (VDP_PORT_VRAM),a
     VRAMWait
@@ -244,8 +216,7 @@ VDP_BI_SetupGraphicsIINameTable:
     ; Now the pattern table is a bitmap. Magic!
 
     ld      de,$3800
-    ld      c,VDP_SetVRAMAddress
-    DoVDPBIOS
+    VDPBIOS VDP_SetVRAMWriteAddress
 
     ld      d,3 ; outer loops
     ld      b,0 ; 256 inner loops
@@ -269,7 +240,7 @@ VDP_Regs_Text:
     db      $01                     ; pattern table at $0800
     db      $00                     ; sprite attribute table not used
     db      $00                     ; sprite pattern table not used
-    db      $F2                     ; white text on black background
+    db      $F0                     ; white text on black background
 
 VDP_Regs_Graphics1:
     db      %00000000               ; tilemap mode, no external video
@@ -279,7 +250,7 @@ VDP_Regs_Graphics1:
     db      $01                     ; pattern table at $800
     db      $20                     ; sprite attribute table at $1000
     db      $00                     ; sprite pattern table at $0
-    db      $01                     ; black background
+    db      $00                     ; black background
 
 VDP_Regs_Graphics2:
     db      %00000010               ; bitmap mode, no external video
@@ -289,29 +260,29 @@ VDP_Regs_Graphics2:
     db      $03                     ; pattern table at $0
     db      $76                     ; sprite attribute table at $3B00
     db      $03                     ; sprite pattern table at $1800
-    db      $01                     ; black background
+    db      $00                     ; black background
 
 VDP_DefaultRegisters:
     ; Blanking, 16KB VRAM
     db      $00, $80, $00, $00, $00, $00, $00, $00
 
 VDP_B_FnTable:
-	dw  VDP_B_Reset		            ; C = 0
-    dw  VDP_B_GoTextMode            ; C = 1
-    dw  VDP_B_GoGraphics1           ; C = 2
-    dw  VDP_B_GoGraphics2           ; C = 3
-    dw  VDP_B_SetVRAMAddress        ; C = 4
-    dw  VDP_B_SetRegistersFromArray ; C = 5
-    dw  VDP_B_SetRegister           ; C = 6
-    dw  VDP_B_VRAMBlockCopy         ; C = 7
-    dw  VDP_B_StringOut             ; C = 8
-    dw  VDP_B_SetTextPosition       ; C = 9
-    dw  VDP_B_GoBitmapMode          ; C = 10
-    dw  VDP_B_GetPixelAddress       ; C = 11
+	jp  VDP_B_Reset		            ; C = 0
+    jp  VDP_B_GoTextMode            ; C = 1
+    jp  VDP_B_GoGraphics1           ; C = 2
+    jp  VDP_B_GoGraphics2           ; C = 3
+    jp  VDP_B_SetVRAMWriteAddress   ; C = 4
+    jp  VDP_B_SetRegistersFromArray ; C = 5
+    jp  VDP_B_SetRegister           ; C = 6
+    jp  VDP_B_VRAMBlockCopy         ; C = 7
+    jp  VDP_B_StringOut             ; C = 8
+    jp  VDP_B_SetTextPosition       ; C = 9
+    jp  VDP_B_GoBitmapMode          ; C = 10
+    jp  VDP_B_GetPixelAddress       ; C = 11
+    jp  VDP_B_SetVRAMReadAddress    ; C = 12
 
     PAGE 2
 VDP_ShadowRegs: ds 8   ; 8 bytes of shadow registers
 
-    org $8400
+    org VDP_JUMPTABLE_PUBLIC
 VDP_FnTable_Public: ds 256
-

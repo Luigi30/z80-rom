@@ -1,63 +1,52 @@
+	PAGE 1
+
 ; Monitor's M command - memory output
 Monitor_CMD_Memory:
 	; Load the arguments into MemoryOutputStartAddr/MemoryOutputEndAddr.
     
     ; Beginning address
 	ld		hl,(MON_Argument1+0)
-	ld		(StringToHex_Source+0),hl
+	ld		(STRINGTOHEX_SRC+0),hl
 	ld		hl,(MON_Argument1+2)
-	ld		(StringToHex_Source+2),hl
-
-	;call	ConvertStringToHex16
-	ld		c,B_STRTOHEX16
-	DoProcyon
-	ld		hl,(StringToHex_Dest)
+	ld		(STRINGTOHEX_SRC+2),hl
+	call	PROCYON_StringToHex16
+	ld		hl,(STRINGTOHEX_DEST)
 	ld		(MemoryOutputStartAddr),hl
 
 	; Ending address
+	; If MON_Argument2 is NULL, abort with an error.
+	ld		a,(MON_Argument2)
+	cp		0
+	jr		z,.argerror
+
 	ld		hl,(MON_Argument2)
-	ld		(StringToHex_Source+0),hl
+	ld		(STRINGTOHEX_SRC+0),hl
 	ld		hl,(MON_Argument2+2)
-	ld		(StringToHex_Source+2),hl
-	;call	ConvertStringToHex16
+	ld		(STRINGTOHEX_SRC+2),hl
+	call	PROCYON_StringToHex16
 
-	ld		c,B_STRTOHEX16
-	DoProcyon
-
-	ld		hl,(StringToHex_Dest)
+	ld		hl,(STRINGTOHEX_DEST)
 	ld		(MemoryOutputEndAddr),hl
 
-    ; Debugging address conversion
-    ; ld      hl,(MemoryOutputStartAddr)
-    ; ld      (HexToString_Source),hl
-    ; call    ConvertHex16ToString
-    ; ld		de,HexToString_Dest
-	; ld		c,B_STROUT
-	; DoBIOS
-	; ld		e,"-"
-	; ld		c,B_CONOUT
-	; DoBIOS
-    ; ld      hl,(StringToHex_Dest)
-    ; ld      (HexToString_Source),hl
-    ; call    ConvertHex16ToString
-    ; ld		de,HexToString_Dest
-	; ld		c,B_STROUT
-	; DoBIOS
-
 	call	Monitor_DoMemoryOutput
+	ret
 
+.argerror:
+	ld		de,strCmdArgumentError
+	ld		c,B_STROUT
+	DoBIOS
+	ld		de,strCRLF
+	ld		c,B_STROUT
+	DoBIOS
 	ret
 
 Monitor_DoMemoryLabel:
 	; Formatting: start address
 	ld		hl,(MemoryOutputCurAddr)
-	ld		(HexToString_Source),hl
-	; call	ConvertHex16ToString
+	ld		(HEXTOSTRING_SRC),hl
+	PROCYON	B_HEX16TOSTR
 
-	ld		c,B_HEX16TOSTR
-	DoProcyon
-
-	ld		de,HexToString_Dest
+	ld		de,HEXTOSTRING_DEST
 	ld		c,B_STROUT
 	DoBIOS
 	ld		e,":"
@@ -75,19 +64,17 @@ Monitor_PrintBytes:
 	push	bc
 
 	ld		a,(ix)						; A has a memory byte
-	ld		(HexToString_Source),a		
+	ld		(HEXTOSTRING_SRC),a		
 	push	ix
-	; call	ConvertHex8ToString			; Convert it to ASCII
-
-	ld		c,B_HEX8TOSTR
-	DoProcyon
+	; PROCYON	B_HEX8TOSTR
+	call	PROCYON_Hex8ToString
 
 	; Print two characters of output and a space
-	ld		a,(HexToString_Dest)
+	ld		a,(HEXTOSTRING_DEST)
 	ld		e,a
 	ld		c,B_CONOUT
 	DoBIOS								
-	ld		a,(HexToString_Dest+1)
+	ld		a,(HEXTOSTRING_DEST+1)
 	ld		e,a
 	ld		c,B_CONOUT
 	DoBIOS

@@ -271,9 +271,17 @@ BIOS_Strin:
 
 	; Is the character 0x0D?
 	ld		a,l
-	cp		$0D	; LF
-	jr		nz,.begin		; loop if no
+	cp		$0D	; CR
+	jr		z,.done		; loop if no
 
+	; Is the character 0x0D?
+	ld		a,l
+	cp		$0A	; LF
+	jr		z,.done		; loop if no
+
+	jr		.begin
+
+.done:
 	; add a null
 	ld		l,0
 	ld		(iy),l	; copy the character to the input buffer

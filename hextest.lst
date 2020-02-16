@@ -1,4 +1,4 @@
-Sjasm Z80 Assembler v0.42c - www.xl2s.tk             [2020.02.12 - 02:36:39]
+Sjasm Z80 Assembler v0.42c - www.xl2s.tk             [2020.02.15 - 18:57:39]
 
 hextest.asm
 Errors: 0
@@ -7,7 +7,29 @@ Errors: 0
        2   00:9000                      
        3   00:9000                          org $9000
        4   00:9000                      
-       5   00:9000                          include "vdpbios.inc"
+       5   00:9000                          include "procapi.inc"
+       1.  00:9000  (00:0000)           B_STRTOHEX8		= 0
+       2.  00:9000  (00:0001)           B_STRTOHEX16	= 1
+       3.  00:9000  (00:0002)           B_HEX8TOSTR		= 2
+       4.  00:9000  (00:0003)           B_HEX16TOSTR	= 3
+       5.  00:9000                      
+       6.  00:9000                      ; Function table base address.
+       7.  00:9000  (00:F100)           PROCYON_PUBLIC_API_BASE = $F100
+       8.  00:9000                      
+       9.  00:9000                      ; Variable base address.
+      10.  00:9000  (00:8300)           PROCAPI_DATA_BASE = $8300
+      11.  00:9000                      
+      12.  00:9000                      ; Offsets for ProcAPI data values.
+      13.  00:9000  (00:8300)           STRINGTOHEX_SRC     = PROCAPI_DATA_BASE     ; +0
+      14.  00:9000  (00:8310)           STRINGTOHEX_DEST    = STRINGTOHEX_SRC+16    ; +16
+      15.  00:9000  (00:8318)           HEXTOSTRING_SRC     = STRINGTOHEX_DEST+8    ; +24
+      16.  00:9000  (00:831C)           HEXTOSTRING_DEST    = HEXTOSTRING_SRC+4     ; +28
+      17.  00:9000                      
+      18.  00:9000                      ; Calls the function ID.
+      19.  00:9000                      MACRO PROCYON cmd
+      20.  00:9000                    <     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
+      21.  00:9000                    < ENDMACRO
+       6   00:9000                          include "vdpbios.inc"
        1.  00:9000  (00:0098)           VDP_PORT_VRAM  = $98
        2.  00:9000  (00:0099)           VDP_PORT_REGS  = $99
        3.  00:9000                      
@@ -15,30 +37,36 @@ Errors: 0
        5.  00:9000  (00:0040)           VDP_VRAM_WRITE  = $40
        6.  00:9000  (00:0080)           VDP_REG_WRITE   = $80
        7.  00:9000                      
-       8.  00:9000  (00:0004)           tmswait:        equ 4                   ; wait divisor
+       8.  00:9000  (00:0004)           tmswait:        equ 4      ; wait divisor
        9.  00:9000                      
-      10.  00:9000                      ; Function table names.
-      11.  00:9000  (00:0000)           VDP_Reset                   equ 0
-      12.  00:9000  (00:0001)           VDP_GoTextMode              equ 1
-      13.  00:9000  (00:0002)           VDP_GoGraphics1             equ 2
-      14.  00:9000  (00:0003)           VDP_GoGraphics2             equ 3
-      15.  00:9000  (00:0004)           VDP_SetVRAMAddress          equ 4
-      16.  00:9000  (00:0005)           VDP_SetRegistersFromArray   equ 5
-      17.  00:9000  (00:0006)           VDP_SetRegister             equ 6
-      18.  00:9000  (00:0007)           VDP_VRAMBlockCopy           equ 7
-      19.  00:9000  (00:0008)           VDP_StringOut               equ 8
-      20.  00:9000  (00:0009)           VDP_SetTextPosition         equ 9
-      21.  00:9000  (00:000A)           VDP_GoBitmapMode            equ 10
-      22.  00:9000                      ; VDP_GetPixelAddress         equ 11
-      23.  00:9000                      
-      24.  00:9000                      MACRO	DoVDPBIOS	
-      25.  00:9000                    < 		rst	$28
-      26.  00:9000                    < ENDMACRO
+      10.  00:9000  (00:A02F)           _VDPClearPixel:  equ $A02F ; cpl, and b
+      11.  00:9000  (00:00B0)           _VDPSetPixel:    equ $00B0 ; nop, or b
+      12.  00:9000                      
+      13.  00:9000                      ; Function table names.
+      14.  00:9000  (00:0000)           VDP_Reset                   equ 0
+      15.  00:9000  (00:0001)           VDP_GoTextMode              equ 1
+      16.  00:9000  (00:0002)           VDP_GoGraphics1             equ 2
+      17.  00:9000  (00:0003)           VDP_GoGraphics2             equ 3
+      18.  00:9000  (00:0004)           VDP_SetVRAMWriteAddress     equ 4
+      19.  00:9000  (00:0005)           VDP_SetRegistersFromArray   equ 5
+      20.  00:9000  (00:0006)           VDP_SetRegister             equ 6
+      21.  00:9000  (00:0007)           VDP_VRAMBlockCopy           equ 7
+      22.  00:9000  (00:0008)           VDP_StringOut               equ 8
+      23.  00:9000  (00:0009)           VDP_SetTextPosition         equ 9
+      24.  00:9000  (00:000A)           VDP_GoBitmapMode            equ 10
+      25.  00:9000  (00:000B)           VDP_GetPixelAddress         equ 11
+      26.  00:9000  (00:000C)           VDP_SetVRAMReadAddress      equ 12
       27.  00:9000                      
-      28.  00:9000                      MACRO   VRAMWait
-      29.  00:9000                    <         defs    14/tmswait, 0         ; nops to waste time
-      30.  00:9000                    < ENDMACRO
-       6   00:9000                          include "rc2014.inc"
+      28.  00:9000  (00:F000)           VDP_JUMPTABLE_PUBLIC = $F000
+      29.  00:9000                      
+      30.  00:9000                      MACRO	VDPBIOS cmd
+      31.  00:9000                    <     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
+      32.  00:9000                    < ENDMACRO
+      33.  00:9000                      
+      34.  00:9000                      MACRO   VRAMWait
+      35.  00:9000                    <         defs    14/tmswait, 0         ; nops to waste time
+      36.  00:9000                    < ENDMACRO
+       7   00:9000                          include "rc2014.inc"
        1.  00:9000                      ; Function code equates.
        2.  00:9000  (00:0000)           B_RESET			= 0
        3.  00:9000  (00:0001)           B_CONOUT        = 1
@@ -55,219 +83,469 @@ Errors: 0
       14.  00:9000                      MACRO	DoBIOS	
       15.  00:9000                    < 		rst	$20
       16.  00:9000                    < ENDMACRO
-       7   00:9000                      
-       8   00:9000                      START:
-       9   00:9000  11 CB 90                ld		de,HelloWorld
-      10   00:9003  0E 02               	ld		c,B_STROUT
-      11   00:9005                      	DoBIOS
-      11   00:9005  E7                >   rst $20
-      12   00:9006                      
-      13   00:9006  F3                      di
-      14   00:9007                      
-      15   00:9007  0E 00                   ld      c,VDP_Reset
-      16   00:9009                          DoVDPBIOS
-      16   00:9009  EF                >   rst $28
-      17   00:900A  0E 01                   ld      c,VDP_GoTextMode
-      18   00:900C                          DoVDPBIOS
-      18   00:900C  EF                >   rst $28
-      19   00:900D                      	
-      20   00:900D  3E 05               	ld		a,5
-      21   00:900F  1E 05               	ld		e,5
-      22   00:9011  0E 09                   ld      c,VDP_SetTextPosition
-      23   00:9013                          DoVDPBIOS
-      23   00:9013  EF                >   rst $28
-      24   00:9014  21 68 90            	ld		hl,strBanner1
-      25   00:9017  0E 08               	ld      c,VDP_StringOut
-      26   00:9019                          DoVDPBIOS
-      26   00:9019  EF                >   rst $28
-      27   00:901A                      
-      28   00:901A  3E 09               	ld		a,9
-      29   00:901C  1E 06               	ld		e,6
-      30   00:901E  0E 09                   ld      c,VDP_SetTextPosition
-      31   00:9020                          DoVDPBIOS
-      31   00:9020  EF                >   rst $28
-      32   00:9021  21 88 90            	ld		hl,strBanner2
-      33   00:9024  0E 08               	ld      c,VDP_StringOut
-      34   00:9026                          DoVDPBIOS
-      34   00:9026  EF                >   rst $28
-      35   00:9027                      
-      36   00:9027  3E 00               	ld		a,0
-      37   00:9029  1E 14               	ld		e,20
-      38   00:902B  0E 09                   ld      c,VDP_SetTextPosition
-      39   00:902D                          DoVDPBIOS
-      39   00:902D  EF                >   rst $28
-      40   00:902E  21 A0 90            	ld		hl,strBanner3
-      41   00:9031  0E 08               	ld      c,VDP_StringOut
-      42   00:9033                          DoVDPBIOS
-      42   00:9033  EF                >   rst $28
-      43   00:9034                      
-      44   00:9034  3E 0A                   ld		a,10
-      45   00:9036  1E 16               	ld		e,22
-      46   00:9038  0E 09                   ld      c,VDP_SetTextPosition
-      47   00:903A                          DoVDPBIOS
-      47   00:903A  EF                >   rst $28
-      48   00:903B  21 B4 90            	ld		hl,strBanner4
-      49   00:903E  0E 08               	ld      c,VDP_StringOut
-      50   00:9040                          DoVDPBIOS
-      50   00:9040  EF                >   rst $28
-      51   00:9041                      
-      52   00:9041                          ; ld      c,VDP_Reset
-      53   00:9041                          ; DoVDPBIOS
-      54   00:9041                          ; ld      c,VDP_GoBitmapMode
-      55   00:9041                          ; DoVDPBIOS
-      56   00:9041                      
-      57   00:9041                          ; ; Set address...
-      58   00:9041                          ; ld      b,16
-      59   00:9041                          ; ld      c,$20
-      60   00:9041                          ; call    VDP_GetPixelAddress
-      61   00:9041                          ; ld      c,VDP_SetVRAMAddress
-      62   00:9041                          ; DoVDPBIOS
-      63   00:9041                          ; ; Draw a vertical strip...
-      64   00:9041                          ; ld      b,8
-      65   00:9041                          ; ld      a,%11110000
-      66   00:9041                          ; call    VDP_DrawVerticalStrip
-      67   00:9041                          ; ; Set address...
-      68   00:9041                          ; ld      b,24
-      69   00:9041                          ; ld      c,$20
-      70   00:9041                          ; call    VDP_GetPixelAddress
-      71   00:9041                          ; ld      c,VDP_SetVRAMAddress
-      72   00:9041                          ; DoVDPBIOS
-      73   00:9041                          ; ; Draw a vertical strip...
-      74   00:9041                          ; ld      b,8
-      75   00:9041                          ; ld      a,%11110000
-      76   00:9041                          ; call    VDP_DrawVerticalStrip
-      77   00:9041                          ; ; Set address...
-      78   00:9041                          ; ld      b,32
-      79   00:9041                          ; ld      c,$20
-      80   00:9041                          ; call    VDP_GetPixelAddress
-      81   00:9041                          ; ld      c,VDP_SetVRAMAddress
-      82   00:9041                          ; DoVDPBIOS
-      83   00:9041                          ; ; Draw a vertical strip...
-      84   00:9041                          ; ld      b,8
-      85   00:9041                          ; ld      a,%11110000
-      86   00:9041                          ; call    VDP_DrawVerticalStrip
-      87   00:9041                      
-      88   00:9041  FB                      ei
-      89   00:9042                      
-      90   00:9042  C9                      ret
-      91   00:9043                      
-      92   00:9043                      ;;;;;;;;;;;;;;;;
-      93   00:9043                      
-      94   00:9043                      VDP_DrawVerticalStrip:
-      95   00:9043                          ; Graphics II mode vertical strip.
-      96   00:9043                          ; VRAM address should be set before calling this function.
-      97   00:9043                          ; Inputs:
-      98   00:9043                          ; A - pixel mask to use
-      99   00:9043                          ; B - height
-     100   00:9043  D3 98                   out     (VDP_PORT_VRAM),a
-     101   00:9045                          VRAMWait
-     101   00:9045  00 (3)            >         defs    14/tmswait, 0
-     102   00:9048  10 F9                   djnz    VDP_DrawVerticalStrip
-     103   00:904A  C9                      ret
-     104   00:904B                      
-     105   00:904B                      VDP_GetPixelAddress:
-     106   00:904B  78                          ld      a, b                    ; d = (y / 8)
-     107   00:904C  0F                          rrca
-     108   00:904D  0F                          rrca
-     109   00:904E  0F                          rrca
-     110   00:904F  E6 1F                       and     1fh
-     111   00:9051  57                          ld      d, a
-     112   00:9052                      
-     113   00:9052  79                          ld      a, c                    ; e = (x & f8)
-     114   00:9053  E6 F8                       and     0f8h
-     115   00:9055  5F                          ld      e, a
-     116   00:9056                      
-     117   00:9056  78                          ld      a, b                    ; e += (y & 7)
-     118   00:9057  E6 07                       and     7
-     119   00:9059  B3                          or      e
-     120   00:905A  5F                          ld      e, a
-     121   00:905B  C9                          ret
-     122   00:905C                      
-     123   00:905C                      VDP_B_StringOut:
-     124   00:905C  7E                      ld      a, (hl)                 ; get the current byte from ram
-     125   00:905D  FE 00                   cp      0                       ; return when NULL is encountered
-     126   00:905F  C8                      ret     z
-     127   00:9060  D3 98                   out     (VDP_PORT_VRAM), a             ; send it to vram
-     128   00:9062  00 (3)                  defs    14/tmswait, 0         ; nops to waste time
-     129   00:9065  23                      inc     hl                      ; next byte
-     130   00:9066  18 F4                   jr      VDP_B_StringOut
-     131   00:9068                      
-     132   00:9068                      strBanner1:
-     133   00:9068                      	dz	"Procyon/80 ROM BIOS and Monitor"
-     133   00:9068  50 72 6F 63 79 6F 6E 2F 38 30 20 52 4F 4D 20 42 
-     133   00:9078  49 4F 53 20 61 6E 64 20 4D 6F 6E 69 74 6F 72 00 
-     134   00:9088                      
-     135   00:9088                      strBanner2:
-     136   00:9088                      	dz	"Software by LuigiThirty"
-     136   00:9088  53 6F 66 74 77 61 72 65 20 62 79 20 4C 75 69 67 
-     136   00:9098  69 54 68 69 72 74 79 00 
-     137   00:90A0                      
-     138   00:90A0                      strBanner3:
-     139   00:90A0                      	dz	"Revision 02/12/1979"
-     139   00:90A0  52 65 76 69 73 69 6F 6E 20 30 32 2F 31 32 2F 31 
-     139   00:90B0  39 37 39 00 
-     140   00:90B4                      
-     141   00:90B4                      strBanner4:
-     142   00:90B4                      	dz	"here, it's always 1979"
-     142   00:90B4  68 65 72 65 2C 20 69 74 27 73 20 61 6C 77 61 79 
-     142   00:90C4  73 20 31 39 37 39 00 
-     143   00:90CB                      
-     144   00:90CB                      HelloWorld:
-     145   00:90CB                      	db	    "TMS9918 ASCII Thingy",13,10,0
-     145   00:90CB  54 4D 53 39 39 31 38 20 41 53 43 49 49 20 54 68 
-     145   00:90DB  69 6E 67 79 0D 0A 00 
-     146   00:90E2                      
-     147   00:90E2                      BannerData:
-     148   00:90E2                          db      "****************************************"
-     148   00:90E2  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
-     148   00:90F2  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
-     148   00:9102  2A 2A 2A 2A 2A 2A 2A 2A 
-     149   00:910A                          db      "* P R O C Y O N / 8 0    M O N I T O R *"
-     149   00:910A  2A 20 50 20 52 20 4F 20 43 20 59 20 4F 20 4E 20 
-     149   00:911A  2F 20 38 20 30 20 20 20 20 4D 20 4F 20 4E 20 49 
-     149   00:912A  20 54 20 4F 20 52 20 2A 
-     150   00:9132                          db      "*                                      *"
-     150   00:9132  2A 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
-     150   00:9142  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
-     150   00:9152  20 20 20 20 20 20 20 2A 
-     151   00:915A                          db      "*  Official Operating System of 1979!  *"
-     151   00:915A  2A 20 20 4F 66 66 69 63 69 61 6C 20 4F 70 65 72 
-     151   00:916A  61 74 69 6E 67 20 53 79 73 74 65 6D 20 6F 66 20 
-     151   00:917A  31 39 37 39 21 20 20 2A 
-     152   00:9182                          db      "*                                      *"
-     152   00:9182  2A 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
-     152   00:9192  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
-     152   00:91A2  20 20 20 20 20 20 20 2A 
-     153   00:91AA                          db      "*      VDP Routine Test Program 1      *"
-     153   00:91AA  2A 20 20 20 20 20 20 56 44 50 20 52 6F 75 74 69 
-     153   00:91BA  6E 65 20 54 65 73 74 20 50 72 6F 67 72 61 6D 20 
-     153   00:91CA  31 20 20 20 20 20 20 2A 
-     154   00:91D2                          db      "****************************************"
-     154   00:91D2  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
-     154   00:91E2  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
-     154   00:91F2  2A 2A 2A 2A 2A 2A 2A 2A 
-     155   00:91FA  00                      db      0
+       8   00:9000                          include "ata.inc"
+       1.  00:9000  (00:0010)           ATA_IO_BASE         = $10
+       2.  00:9000  (00:0010)           ATA_REG_DATA        = ATA_IO_BASE+0 ; R/W
+       3.  00:9000  (00:0011)           ATA_REG_ERROR       = ATA_IO_BASE+1 ; R
+       4.  00:9000  (00:0011)           ATA_REG_FEATURES    = ATA_IO_BASE+1 ; W
+       5.  00:9000  (00:0012)           ATA_REG_SECTORCOUNT = ATA_IO_BASE+2 ; R/W
+       6.  00:9000  (00:0013)           ATA_REG_LBALO       = ATA_IO_BASE+3 ; R/W
+       7.  00:9000  (00:0014)           ATA_REG_LBAMID      = ATA_IO_BASE+4 ; R/W
+       8.  00:9000  (00:0015)           ATA_REG_LBAHI       = ATA_IO_BASE+5 ; R/W
+       9.  00:9000  (00:0016)           ATA_REG_DRIVESELECT = ATA_IO_BASE+6 ; R/W
+      10.  00:9000  (00:0017)           ATA_REG_STATUS      = ATA_IO_BASE+7 ; R
+      11.  00:9000  (00:0017)           ATA_REG_COMMAND     = ATA_IO_BASE+7 ; W
+      12.  00:9000                      
+      13.  00:9000  (00:0001)           ATA_ERROR_AMNF      = $01
+      14.  00:9000  (00:0002)           ATA_ERROR_TKZNF     = $02
+      15.  00:9000  (00:0004)           ATA_ERROR_ABRT      = $04
+      16.  00:9000  (00:0008)           ATA_ERROR_MCR       = $08
+      17.  00:9000  (00:0010)           ATA_ERROR_IDNF      = $10
+      18.  00:9000  (00:0020)           ATA_ERROR_MC        = $20
+      19.  00:9000  (00:0040)           ATA_ERROR_UNC       = $40
+      20.  00:9000  (00:0080)           ATA_ERROR_BBK       = $80
+      21.  00:9000                      
+      22.  00:9000  (00:0001)           ATA_STATUS_ERR      = $01
+      23.  00:9000  (00:0002)           ATA_STATUS_IDX      = $02
+      24.  00:9000  (00:0004)           ATA_STATUS_CORR     = $04
+      25.  00:9000  (00:0008)           ATA_STATUS_DRQ      = $08
+      26.  00:9000  (00:0010)           ATA_STATUS_SRV      = $10
+      27.  00:9000  (00:0020)           ATA_STATUS_DF       = $20
+      28.  00:9000  (00:0040)           ATA_STATUS_RDY      = $40
+      29.  00:9000  (00:0080)           ATA_STATUS_BSY      = $80
+      30.  00:9000                      
+      31.  00:9000                      ; Command bytes
+      32.  00:9000  (00:00EC)           ATA_CMD_IDENTIFY    = $EC
+      33.  00:9000  (00:00EF)           ATA_CMD_SET_FEATURE = $EF
+       9   00:9000                      
+      10   00:9000                      START:
+      11   00:9000  11 E7 92                ld		de,strATADetect
+      12   00:9003  0E 02               	ld		c,B_STROUT
+      13   00:9005                      	DoBIOS
+      13   00:9005  E7                >   rst $20
+      14   00:9006                      
+      15   00:9006  F3                      di
+      16   00:9007                      
+      17   00:9007  CD C3 90                call    ATA_Set8BitMode
+      18   00:900A  21 77 93                ld      hl,bufATACmdResponse
+      19   00:900D  CD CC 90                call    ATA_DoIdentify
+      20   00:9010                      
+      21   00:9010  11 56 93                ld		de,strATAFieldSerial
+      22   00:9013  0E 02               	ld		c,B_STROUT
+      23   00:9015                      	DoBIOS
+      23   00:9015  E7                >   rst $20
+      24   00:9016  21 77 93                ld      hl,bufATACmdResponse
+      25   00:9019  CD 48 90                call    PrintSerialNumber
+      26   00:901C  11 B4 91                ld		de,strCRLF
+      27   00:901F  0E 02               	ld		c,B_STROUT
+      28   00:9021                      	DoBIOS
+      28   00:9021  E7                >   rst $20
+      29   00:9022                          
+      30   00:9022  11 36 93                ld		de,strATAFieldModel
+      31   00:9025  0E 02               	ld		c,B_STROUT
+      32   00:9027                      	DoBIOS
+      32   00:9027  E7                >   rst $20
+      33   00:9028  21 77 93                ld      hl,bufATACmdResponse
+      34   00:902B  CD 63 90                call    PrintModelNumber
+      35   00:902E  11 B4 91                ld		de,strCRLF
+      36   00:9031  0E 02               	ld		c,B_STROUT
+      37   00:9033                      	DoBIOS
+      37   00:9033  E7                >   rst $20
+      38   00:9034                      
+      39   00:9034  11 66 93                ld		de,strATAFieldSectors
+      40   00:9037  0E 02               	ld		c,B_STROUT
+      41   00:9039                      	DoBIOS
+      41   00:9039  E7                >   rst $20
+      42   00:903A  21 77 93                ld      hl,bufATACmdResponse
+      43   00:903D  CD 7E 90                call    PrintSectorCount
+      44   00:9040  11 B4 91                ld		de,strCRLF
+      45   00:9043  0E 02               	ld		c,B_STROUT
+      46   00:9045                      	DoBIOS
+      46   00:9045  E7                >   rst $20
+      47   00:9046                      
+      48   00:9046                          ; VDPBIOS VDP_Reset
+      49   00:9046                          ; VDPBIOS VDP_GoTextMode
+      50   00:9046                      	
+      51   00:9046                          ; VDPBIOS VDP_Reset
+      52   00:9046                          ; VDPBIOS VDP_GoBitmapMode
+      53   00:9046                      
+      54   00:9046  FB                      ei
+      55   00:9047                      
+      56   00:9047  C9                      ret
+      57   00:9048                      
+      58   00:9048                      ;;;;;;;;;;;;;;;;
+      59   00:9048                      
+      60   00:9048                      PrintSerialNumber:
+      61   00:9048                          ; Input: HL is a ptr to the IDENTIFY response
+      62   00:9048                          
+      63   00:9048                          ; Serial number is at buf+20 to buf+38 with swapped endianness.
+      64   00:9048  01 14 00                ld      bc,20
+      65   00:904B  09                      add     hl,bc
+      66   00:904C                      
+      67   00:904C  06 0A                   ld      b,10
+      68   00:904E                      .loop:
+      69   00:904E  C5                      push    bc
+      70   00:904F  23                      inc     hl
+      71   00:9050  E5                      push    hl
+      72   00:9051  5E                      ld		e,(hl)
+      73   00:9052  0E 01               	ld		c,B_CONOUT
+      74   00:9054                      	DoBIOS
+      74   00:9054  E7                >   rst $20
+      75   00:9055  E1                      pop     hl
+      76   00:9056  2B                      dec     hl
+      77   00:9057  E5                      push    hl
+      78   00:9058  5E                      ld		e,(hl)
+      79   00:9059  0E 01               	ld		c,B_CONOUT
+      80   00:905B                      	DoBIOS
+      80   00:905B  E7                >   rst $20
+      81   00:905C  E1                      pop     hl
+      82   00:905D  23                      inc     hl
+      83   00:905E  23                      inc     hl
+      84   00:905F  C1                      pop     bc
+      85   00:9060  10 EC                   djnz    .loop
+      86   00:9062                      
+      87   00:9062  C9                      ret
+      88   00:9063                      
+      89   00:9063                      PrintModelNumber:
+      90   00:9063                          ; Input: HL is a ptr to the IDENTIFY response
+      91   00:9063                          ; Serial number is at buf+54 to buf+92 with swapped endianness.
+      92   00:9063  01 36 00                ld      bc,54
+      93   00:9066  09                      add     hl,bc
+      94   00:9067                      
+      95   00:9067  06 13                   ld      b,19
+      96   00:9069                      .loop:
+      97   00:9069  C5                      push    bc
+      98   00:906A  23                      inc     hl
+      99   00:906B  E5                      push    hl
+     100   00:906C  5E                      ld		e,(hl)
+     101   00:906D  0E 01               	ld		c,B_CONOUT
+     102   00:906F                      	DoBIOS
+     102   00:906F  E7                >   rst $20
+     103   00:9070  E1                      pop     hl
+     104   00:9071  2B                      dec     hl
+     105   00:9072  E5                      push    hl
+     106   00:9073  5E                      ld		e,(hl)
+     107   00:9074  0E 01               	ld		c,B_CONOUT
+     108   00:9076                      	DoBIOS
+     108   00:9076  E7                >   rst $20
+     109   00:9077  E1                      pop     hl
+     110   00:9078  23                      inc     hl
+     111   00:9079  23                      inc     hl
+     112   00:907A  C1                      pop     bc
+     113   00:907B  10 EC                   djnz    .loop
+     114   00:907D                      
+     115   00:907D  C9                      ret
+     116   00:907E                      
+     117   00:907E                      PrintSectorCount:
+     118   00:907E                          ; Input: HL is a ptr to the IDENTIFY response
+     119   00:907E                          ; Sector count is a DWORD at buf+120
+     120   00:907E                      
+     121   00:907E  01 7B 00                ld      bc,123
+     122   00:9081  09                      add     hl,bc
+     123   00:9082                      
+     124   00:9082  E5                      push    hl
+     125   00:9083  7E                      ld      a,(hl)
+     126   00:9084  32 18 83            	ld		(HEXTOSTRING_SRC),a
+     127   00:9087                          PROCYON B_HEX8TOSTR
+     127   00:9087  CD 06 F1          >     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
+     128   00:908A                      
+     129   00:908A  11 1C 83            	ld		de,HEXTOSTRING_DEST
+     130   00:908D  0E 02               	ld		c,B_STROUT
+     131   00:908F                      	DoBIOS
+     131   00:908F  E7                >   rst $20
+     132   00:9090  E1                      pop     hl
+     133   00:9091  2B                      dec     hl    
+     134   00:9092  E5                      push    hl
+     135   00:9093  7E                      ld      a,(hl)
+     136   00:9094  32 18 83            	ld		(HEXTOSTRING_SRC),a
+     137   00:9097                      	PROCYON B_HEX8TOSTR
+     137   00:9097  CD 06 F1          >     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
+     138   00:909A  11 1C 83            	ld		de,HEXTOSTRING_DEST
+     139   00:909D  0E 02               	ld		c,B_STROUT
+     140   00:909F                      	DoBIOS
+     140   00:909F  E7                >   rst $20
+     141   00:90A0  E1                      pop     hl
+     142   00:90A1  2B                      dec     hl    
+     143   00:90A2  E5                      push    hl
+     144   00:90A3  7E                      ld      a,(hl)
+     145   00:90A4  32 18 83            	ld		(HEXTOSTRING_SRC),a
+     146   00:90A7                      	PROCYON B_HEX8TOSTR
+     146   00:90A7  CD 06 F1          >     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
+     147   00:90AA  11 1C 83            	ld		de,HEXTOSTRING_DEST
+     148   00:90AD  0E 02               	ld		c,B_STROUT
+     149   00:90AF                      	DoBIOS
+     149   00:90AF  E7                >   rst $20
+     150   00:90B0  E1                      pop     hl
+     151   00:90B1  2B                      dec     hl    
+     152   00:90B2  E5                      push    hl
+     153   00:90B3  7E                      ld      a,(hl)
+     154   00:90B4  32 18 83            	ld		(HEXTOSTRING_SRC),a
+     155   00:90B7                      	PROCYON B_HEX8TOSTR
+     155   00:90B7  CD 06 F1          >     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
+     156   00:90BA  11 1C 83            	ld		de,HEXTOSTRING_DEST
+     157   00:90BD  0E 02               	ld		c,B_STROUT
+     158   00:90BF                      	DoBIOS
+     158   00:90BF  E7                >   rst $20
+     159   00:90C0  E1                      pop     hl
+     160   00:90C1  2B                      dec     hl 
+     161   00:90C2                      
+     162   00:90C2  C9                      ret
+     163   00:90C3                      
+     164   00:90C3                      ATA_Set8BitMode:
+     165   00:90C3  3E 01                   ld      a,$01
+     166   00:90C5  D3 11                   out     (ATA_REG_FEATURES),a
+     167   00:90C7                      
+     168   00:90C7  3E EF                   ld      a,ATA_CMD_SET_FEATURE   ; SET-FEATURE
+     169   00:90C9  D3 17                   out     (ATA_REG_COMMAND),a
+     170   00:90CB  C9                      ret
+     171   00:90CC                      
+     172   00:90CC                      ATA_DoIdentify:
+     173   00:90CC                          ; Send an IDENTIFY command.
+     174   00:90CC                          ; Write the 512-byte response to (HL).
+     175   00:90CC                      
+     176   00:90CC  E5                      push    hl
+     177   00:90CD                      
+     178   00:90CD                          ; Select the master drive.
+     179   00:90CD  3E A0                   ld      a,$A0
+     180   00:90CF  D3 16                   out     (ATA_REG_DRIVESELECT),a
+     181   00:90D1                          ; Set sector count and LBA registers to 0
+     182   00:90D1  3E 00                   ld      a,0
+     183   00:90D3  D3 12                   out     (ATA_REG_SECTORCOUNT),a
+     184   00:90D5  D3 15                   out     (ATA_REG_LBAHI),a
+     185   00:90D7  D3 14                   out     (ATA_REG_LBAMID),a
+     186   00:90D9  D3 13                   out     (ATA_REG_LBALO),a
+     187   00:90DB  3E EC                   ld      a,ATA_CMD_IDENTIFY
+     188   00:90DD  D3 17                   out     (ATA_REG_COMMAND),a
+     189   00:90DF                      
+     190   00:90DF                          ; Poll the status port until DRQ is set.
+     191   00:90DF                      .loop:
+     192   00:90DF  DB 17                   in      a,(ATA_REG_STATUS)
+     193   00:90E1  E6 08                   and     $08
+     194   00:90E3  28 FA                   jr      z,.loop
+     195   00:90E5                      
+     196   00:90E5  11 16 93                ld		de,strATAIdent
+     197   00:90E8  0E 02               	ld		c,B_STROUT
+     198   00:90EA                      	DoBIOS
+     198   00:90EA  E7                >   rst $20
+     199   00:90EB                      
+     200   00:90EB                          ; Read 512 bytes into (HL)
+     201   00:90EB  E1                      pop     hl
+     202   00:90EC  06 00                   ld      b,0
+     203   00:90EE                      .readloop1:
+     204   00:90EE  DB 10                   in      a,(ATA_REG_DATA)
+     205   00:90F0  77                      ld      (hl),a
+     206   00:90F1  23                      inc     hl
+     207   00:90F2  10 FA                   djnz    .readloop1
+     208   00:90F4                      .readloop2:
+     209   00:90F4  DB 10                   in      a,(ATA_REG_DATA)
+     210   00:90F6  77                      ld      (hl),a
+     211   00:90F7  23                      inc     hl
+     212   00:90F8  10 FA                   djnz    .readloop2
+     213   00:90FA                      
+     214   00:90FA  C9                      ret
+     215   00:90FB                      
+     216   00:90FB                      ;;;;;;;;;;;;;;;;
+     217   00:90FB                      
+     218   00:90FB                      DrawVerticalLine:
+     219   00:90FB                          ; inputs:   (C,B) is (X,Y)
+     220   00:90FB                          ;           A is length in px
+     221   00:90FB                      .loop:
+     222   00:90FB  F5                      push    af
+     223   00:90FC  C5                      push    bc
+     224   00:90FD  CD 14 91                call    VDP_PlotPixel
+     225   00:9100  C1                      pop     bc
+     226   00:9101  F1                      pop     af
+     227   00:9102  04                      inc     b
+     228   00:9103  B8                      cp      b
+     229   00:9104  C8                      ret     z
+     230   00:9105  18 F4                   jr      .loop
+     231   00:9107                      
+     232   00:9107                      ; set the next address of vram to read
+     233   00:9107                      ;       DE = address
+     234   00:9107                      tmsreadaddr:
+     235   00:9107  7B                          ld      a, e                    ; send lsb
+     236   00:9108  D3 99                       out     (VDP_PORT_REGS), a
+     237   00:910A  7A                          ld      a, d                    ; mask off msb to max of 16KB
+     238   00:910B  E6 3F                       and     $3F
+     239   00:910D  D3 99                       out     (VDP_PORT_REGS), a             ; send msb
+     240   00:910F  C9                          ret
+     241   00:9110                      
+     242   00:9110                      ; set operation for VDP_PlotPixel to perform
+     243   00:9110                      ;       HL = pixel operation (tmsclearpixel, tmssetpixel)
+     244   00:9110                      VDP_SelectPixelOp:
+     245   00:9110  22 2D 91                ld      (maskop), hl
+     246   00:9113  C9                      ret
+     247   00:9114                      
+     248   00:9114                      ; set or clear pixel at X, Y position
+     249   00:9114                      ;       B = Y position
+     250   00:9114                      ;       C = X position
+     251   00:9114                      VDP_PlotPixel:
+     252   00:9114  78                          ld      a, b                    ; don't plot Y coord > 191
+     253   00:9115  FE C0                       cp      192
+     254   00:9117  D0                          ret     nc
+     255   00:9118                              VDPBIOS VDP_GetPixelAddress     ; get address for X/Y coord
+     255   00:9118  CD 21 F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
+     256   00:911B  CD 07 91                    call    tmsreadaddr             ; set read within pattern table
+     257   00:911E  21 35 91                    ld      hl, masklookup          ; address of mask in table
+     258   00:9121  79                          ld      a, c                    ; get lower 3 bits of X coord
+     259   00:9122  E6 07                       and     7
+     260   00:9124  06 00                       ld      b, 0
+     261   00:9126  4F                          ld      c, a
+     262   00:9127  09                          add     hl, bc
+     263   00:9128  7E                          ld      a, (hl)                 ; get mask in A
+     264   00:9129  0E 98                       ld      c, VDP_PORT_VRAM        ; get previous byte in B
+     265   00:912B  ED 40                       in      b, (c)
+     266   00:912D                      maskop:
+     267   00:912D  B0                          or      b                       ; mask bit in previous byte
+     268   00:912E  47                          ld      b, a
+     269   00:912F                              VDPBIOS VDP_SetVRAMWriteAddress ; set write address within pattern table
+     269   00:912F  CD 0C F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
+     270   00:9132  ED 41                       out     (c), b
+     271   00:9134  C9                          ret
+     272   00:9135                      masklookup:
+     273   00:9135                              defb 80h, 40h, 20h, 10h, 8h, 4h, 2h, 1h
+     273   00:9135  80 40 20 10 08 04 02 01 
+     274   00:913D                      
+     275   00:913D                      VDP_DrawVerticalStrip:
+     276   00:913D                          ; Graphics II mode vertical strip.
+     277   00:913D                          ; VRAM address should be set before calling this function.
+     278   00:913D                          ; Inputs:
+     279   00:913D                          ; A - pixel mask to use
+     280   00:913D                          ; B - height
+     281   00:913D  D3 98                   out     (VDP_PORT_VRAM),a
+     282   00:913F                          VRAMWait
+     282   00:913F  00 (3)            >         defs    14/tmswait, 0
+     283   00:9142  10 F9                   djnz    VDP_DrawVerticalStrip
+     284   00:9144  C9                      ret
+     285   00:9145                      
+     286   00:9145                      VDP_B_StringOut:
+     287   00:9145  7E                      ld      a, (hl)                 ; get the current byte from ram
+     288   00:9146  FE 00                   cp      0                       ; return when NULL is encountered
+     289   00:9148  C8                      ret     z
+     290   00:9149  D3 98                   out     (VDP_PORT_VRAM), a             ; send it to vram
+     291   00:914B  00 (3)                  defs    14/tmswait, 0         ; nops to waste time
+     292   00:914E  23                      inc     hl                      ; next byte
+     293   00:914F  18 F4                   jr      VDP_B_StringOut
+     294   00:9151                      
+     295   00:9151                      strBanner1:
+     296   00:9151                      	dz	"Procyon/80 ROM BIOS and Monitor"
+     296   00:9151  50 72 6F 63 79 6F 6E 2F 38 30 20 52 4F 4D 20 42 
+     296   00:9161  49 4F 53 20 61 6E 64 20 4D 6F 6E 69 74 6F 72 00 
+     297   00:9171                      
+     298   00:9171                      strBanner2:
+     299   00:9171                      	dz	"Software by LuigiThirty"
+     299   00:9171  53 6F 66 74 77 61 72 65 20 62 79 20 4C 75 69 67 
+     299   00:9181  69 54 68 69 72 74 79 00 
+     300   00:9189                      
+     301   00:9189                      strBanner3:
+     302   00:9189                      	dz	"Revision 02/12/1979"
+     302   00:9189  52 65 76 69 73 69 6F 6E 20 30 32 2F 31 32 2F 31 
+     302   00:9199  39 37 39 00 
+     303   00:919D                      
+     304   00:919D                      strBanner4:
+     305   00:919D                      	dz	"here, it's always 1979"
+     305   00:919D  68 65 72 65 2C 20 69 74 27 73 20 61 6C 77 61 79 
+     305   00:91AD  73 20 31 39 37 39 00 
+     306   00:91B4                      
+     307   00:91B4                      strCRLF:
+     308   00:91B4  0D 0A 00            	db  13,10,0
+     309   00:91B7                      
+     310   00:91B7                      HelloWorld:
+     311   00:91B7                      	db	    "TMS9918 ASCII Thingy",13,10,0
+     311   00:91B7  54 4D 53 39 39 31 38 20 41 53 43 49 49 20 54 68 
+     311   00:91C7  69 6E 67 79 0D 0A 00 
+     312   00:91CE                      
+     313   00:91CE                      BannerData:
+     314   00:91CE                          db      "****************************************"
+     314   00:91CE  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
+     314   00:91DE  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
+     314   00:91EE  2A 2A 2A 2A 2A 2A 2A 2A 
+     315   00:91F6                          db      "* P R O C Y O N / 8 0    M O N I T O R *"
+     315   00:91F6  2A 20 50 20 52 20 4F 20 43 20 59 20 4F 20 4E 20 
+     315   00:9206  2F 20 38 20 30 20 20 20 20 4D 20 4F 20 4E 20 49 
+     315   00:9216  20 54 20 4F 20 52 20 2A 
+     316   00:921E                          db      "*                                      *"
+     316   00:921E  2A 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
+     316   00:922E  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
+     316   00:923E  20 20 20 20 20 20 20 2A 
+     317   00:9246                          db      "*  Official Operating System of 1979!  *"
+     317   00:9246  2A 20 20 4F 66 66 69 63 69 61 6C 20 4F 70 65 72 
+     317   00:9256  61 74 69 6E 67 20 53 79 73 74 65 6D 20 6F 66 20 
+     317   00:9266  31 39 37 39 21 20 20 2A 
+     318   00:926E                          db      "*                                      *"
+     318   00:926E  2A 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
+     318   00:927E  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 
+     318   00:928E  20 20 20 20 20 20 20 2A 
+     319   00:9296                          db      "*      VDP Routine Test Program 1      *"
+     319   00:9296  2A 20 20 20 20 20 20 56 44 50 20 52 6F 75 74 69 
+     319   00:92A6  6E 65 20 54 65 73 74 20 50 72 6F 67 72 61 6D 20 
+     319   00:92B6  31 20 20 20 20 20 20 2A 
+     320   00:92BE                          db      "****************************************"
+     320   00:92BE  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
+     320   00:92CE  2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 
+     320   00:92DE  2A 2A 2A 2A 2A 2A 2A 2A 
+     321   00:92E6  00                      db      0
+     322   00:92E7                      
+     323   00:92E7                      strATADetect:   db "* Attempting to detect ATA drive at I/O $10.",13,10,0
+     323   00:92E7  2A 20 41 74 74 65 6D 70 74 69 6E 67 20 74 6F 20 
+     323   00:92F7  64 65 74 65 63 74 20 41 54 41 20 64 72 69 76 65 
+     323   00:9307  20 61 74 20 49 2F 4F 20 24 31 30 2E 0D 0A 00 
+     324   00:9316                      strATAIdent:    db  "* Retrieving IDENTIFY data...",13,10,0
+     324   00:9316  2A 20 52 65 74 72 69 65 76 69 6E 67 20 49 44 45 
+     324   00:9326  4E 54 49 46 59 20 64 61 74 61 2E 2E 2E 0D 0A 00 
+     325   00:9336                      
+     326   00:9336                      strATAFieldModel:   db  " Model number: ",0
+     326   00:9336  20 4D 6F 64 65 6C 20 6E 75 6D 62 65 72 3A 20 00 
+     327   00:9346                      strATAFieldFW:      db  " Firmware ver: ",0
+     327   00:9346  20 46 69 72 6D 77 61 72 65 20 76 65 72 3A 20 00 
+     328   00:9356                      strATAFieldSerial:  db  "Serial number: ",0
+     328   00:9356  53 65 72 69 61 6C 20 6E 75 6D 62 65 72 3A 20 00 
+     329   00:9366                      strATAFieldSectors: db  "      Sectors: $",0
+     329   00:9366  20 20 20 20 20 20 53 65 63 74 6F 72 73 3A 20 24 
+     329   00:9376  00 
+     330   00:9377                      
+     331   00:9377  00 (512)            bufATACmdResponse:  ds  512
+     332   00:9577                      
+     333   00:9577  00 (64)             bufStringBuffer     ds  64
+     334   00:95B7                      
+     335   00:95B7  00 (4)              LHexToString_Source:	ds 4
+     336   00:95BB  00 (4)              LHexToString_Dest:		ds 4
 
     LABELS
 -------------------------------------------------
+00:00000000 X B_STRTOHEX8
+00:00000001 X B_STRTOHEX16
+00:00000002   B_HEX8TOSTR
+00:00000003 X B_HEX16TOSTR
+00:0000F100   PROCYON_PUBLIC_API_BASE
+00:00008300   PROCAPI_DATA_BASE
+00:00008300   STRINGTOHEX_SRC
+00:00008310   STRINGTOHEX_DEST
+00:00008318   HEXTOSTRING_SRC
+00:0000831C   HEXTOSTRING_DEST
 00:00000098   VDP_PORT_VRAM
-00:00000099 X VDP_PORT_REGS
+00:00000099   VDP_PORT_REGS
 00:00000040 X VDP_VRAM_WRITE
 00:00000080 X VDP_REG_WRITE
 00:00000004   tmswait
-00:00000000   VDP_Reset
-00:00000001   VDP_GoTextMode
+00:0000A02F X _VDPClearPixel
+00:000000B0 X _VDPSetPixel
+00:00000000 X VDP_Reset
+00:00000001 X VDP_GoTextMode
 00:00000002 X VDP_GoGraphics1
 00:00000003 X VDP_GoGraphics2
-00:00000004 X VDP_SetVRAMAddress
+00:00000004   VDP_SetVRAMWriteAddress
 00:00000005 X VDP_SetRegistersFromArray
 00:00000006 X VDP_SetRegister
 00:00000007 X VDP_VRAMBlockCopy
-00:00000008   VDP_StringOut
-00:00000009   VDP_SetTextPosition
+00:00000008 X VDP_StringOut
+00:00000009 X VDP_SetTextPosition
 00:0000000A X VDP_GoBitmapMode
+00:0000000B   VDP_GetPixelAddress
+00:0000000C X VDP_SetVRAMReadAddress
+00:0000F000   VDP_JUMPTABLE_PUBLIC
 00:00000000 X B_RESET
-00:00000001 X B_CONOUT
+00:00000001   B_CONOUT
 00:00000002   B_STROUT
 00:00000003 X B_CONIN
 00:00000004 X B_CONSTAT
@@ -275,16 +553,72 @@ Errors: 0
 00:00000001 X DEV_AUX
 00:00000002 X DEV_CON
 00:00000005 X DEV_SCREEN
+00:00000010   ATA_IO_BASE
+00:00000010   ATA_REG_DATA
+00:00000011 X ATA_REG_ERROR
+00:00000011   ATA_REG_FEATURES
+00:00000012   ATA_REG_SECTORCOUNT
+00:00000013   ATA_REG_LBALO
+00:00000014   ATA_REG_LBAMID
+00:00000015   ATA_REG_LBAHI
+00:00000016   ATA_REG_DRIVESELECT
+00:00000017   ATA_REG_STATUS
+00:00000017   ATA_REG_COMMAND
+00:00000001 X ATA_ERROR_AMNF
+00:00000002 X ATA_ERROR_TKZNF
+00:00000004 X ATA_ERROR_ABRT
+00:00000008 X ATA_ERROR_MCR
+00:00000010 X ATA_ERROR_IDNF
+00:00000020 X ATA_ERROR_MC
+00:00000040 X ATA_ERROR_UNC
+00:00000080 X ATA_ERROR_BBK
+00:00000001 X ATA_STATUS_ERR
+00:00000002 X ATA_STATUS_IDX
+00:00000004 X ATA_STATUS_CORR
+00:00000008 X ATA_STATUS_DRQ
+00:00000010 X ATA_STATUS_SRV
+00:00000020 X ATA_STATUS_DF
+00:00000040 X ATA_STATUS_RDY
+00:00000080 X ATA_STATUS_BSY
+00:000000EC   ATA_CMD_IDENTIFY
+00:000000EF   ATA_CMD_SET_FEATURE
 00:00009000 X START
-00:00009043   VDP_DrawVerticalStrip
-00:0000904B X VDP_GetPixelAddress
-00:0000905C   VDP_B_StringOut
-00:00009068   strBanner1
-00:00009088   strBanner2
-00:000090A0   strBanner3
-00:000090B4   strBanner4
-00:000090CB   HelloWorld
-00:000090E2 X BannerData
+00:00009048   PrintSerialNumber
+00:0000904E   PrintSerialNumber.loop
+00:00009063   PrintModelNumber
+00:00009069   PrintModelNumber.loop
+00:0000907E   PrintSectorCount
+00:000090C3   ATA_Set8BitMode
+00:000090CC   ATA_DoIdentify
+00:000090DF   ATA_DoIdentify.loop
+00:000090EE   ATA_DoIdentify.readloop1
+00:000090F4   ATA_DoIdentify.readloop2
+00:000090FB X DrawVerticalLine
+00:000090FB   DrawVerticalLine.loop
+00:00009107   tmsreadaddr
+00:00009110 X VDP_SelectPixelOp
+00:00009114   VDP_PlotPixel
+00:0000912D   maskop
+00:00009135   masklookup
+00:0000913D   VDP_DrawVerticalStrip
+00:00009145   VDP_B_StringOut
+00:00009151 X strBanner1
+00:00009171 X strBanner2
+00:00009189 X strBanner3
+00:0000919D X strBanner4
+00:000091B4   strCRLF
+00:000091B7 X HelloWorld
+00:000091CE X BannerData
+00:000092E7   strATADetect
+00:00009316   strATAIdent
+00:00009336   strATAFieldModel
+00:00009346 X strATAFieldFW
+00:00009356   strATAFieldSerial
+00:00009366   strATAFieldSectors
+00:00009377   bufATACmdResponse
+00:00009577 X bufStringBuffer
+00:000095B7 X LHexToString_Source
+00:000095BB X LHexToString_Dest
 
 
  Output: hextest.out
@@ -299,7 +633,7 @@ Errors: 0
 -------------------------------------------------
 
  Page: 00
-  Org: 00009000  Size: *  Used: 000001FB
+  Org: 00009000  Size: *  Used: 000005BF
 
    Address   Length Align   Label
-   00009000     507         START
+   00009000    1471         START
