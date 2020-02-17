@@ -22,12 +22,16 @@ ATA_ERROR_BBK       = $80
 ATA_STATUS_ERR      = $01
 ATA_STATUS_IDX      = $02
 ATA_STATUS_CORR     = $04
-ATA_STATUS_DRQ      = $08
+ATA_STATUS_DRQ      = $08   ; Drive Request
 ATA_STATUS_SRV      = $10
 ATA_STATUS_DF       = $20
-ATA_STATUS_RDY      = $40
-ATA_STATUS_BSY      = $80
+ATA_STATUS_RDY      = $40   ; Ready
+ATA_STATUS_BSY      = $80   ; Busy
+
+ATA_DRIVE_MASTER    = $E0
+ATA_DRIVE_SLAVE     = $F0
 
 ; Command bytes
+ATA_CMD_READ_SECTORS= $20
 ATA_CMD_IDENTIFY    = $EC
 ATA_CMD_SET_FEATURE = $EF

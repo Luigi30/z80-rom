@@ -7,11 +7,6 @@ BIOS_FnTable:
 	dw	BIOS_Conin			; C = 3
 	dw	BIOS_Constat		; C = 4
 	dw	BIOS_Strin			; C = 5
-	
-	; dw	BIOS_StringToHex8	; C = 6
-	; dw	BIOS_StringToHex16	; C = 7
-	; dw	BIOS_Hex8ToString	; C = 8
-	; dw	BIOS_Hex16ToString	; C = 9
 
 ;;; rc2014_getc
 ;;; Wait for the UART to receive a character.

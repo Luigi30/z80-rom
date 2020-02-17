@@ -1,6 +1,6 @@
-	include "procapi.inc"
-
     PAGE 1
+
+	include "procapi.inc"
 
 PROCYON_B_FnTable:
 	jp	PROCYON_StringToHex8	; C = 0
@@ -14,7 +14,6 @@ PROCYON_B_ColdStart:
     ld  de,PROCYON_FnTable_Public
     ld  hl,PROCYON_B_FnTable
     ldir
-
     ret
     
 ;;;;;;;;;;;;;;;;;;;;
@@ -288,6 +287,8 @@ PROCYON_Hex16ToString:
 
 	ret
 
+	PAGE 2
+	
 	org	PROCAPI_DATA_BASE
 ;;;
 _StringToHex_Source:	ds 16	; 0
