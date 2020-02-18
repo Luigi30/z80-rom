@@ -1,4 +1,4 @@
-Sjasm Z80 Assembler v0.42c - www.xl2s.tk             [2020.02.17 - 01:40:11]
+Sjasm Z80 Assembler v0.42c - www.xl2s.tk             [2020.02.17 - 23:30:56]
 
 testprogs/atatest.asm
 Errors: 0
@@ -10,27 +10,31 @@ Errors: 0
        5   00:0000                      
        6   00:0000                          incdir  ".."
        7   00:0000                          include "procapi.inc"
-       1.  00:0000  (00:0000)           B_STRTOHEX8		= 0
-       2.  00:0000  (00:0001)           B_STRTOHEX16	= 1
-       3.  00:0000  (00:0002)           B_HEX8TOSTR		= 2
-       4.  00:0000  (00:0003)           B_HEX16TOSTR	= 3
-       5.  00:0000                      
-       6.  00:0000                      ; Function table base address.
-       7.  00:0000  (00:F100)           PROCYON_PUBLIC_API_BASE = $F100
-       8.  00:0000                      
-       9.  00:0000                      ; Variable base address.
-      10.  00:0000  (00:8300)           PROCAPI_DATA_BASE = $8300
-      11.  00:0000                      
-      12.  00:0000                      ; Offsets for ProcAPI data values.
-      13.  00:0000  (00:8300)           STRINGTOHEX_SRC     = PROCAPI_DATA_BASE     ; +0
-      14.  00:0000  (00:8310)           STRINGTOHEX_DEST    = STRINGTOHEX_SRC+16    ; +16
-      15.  00:0000  (00:8318)           HEXTOSTRING_SRC     = STRINGTOHEX_DEST+8    ; +24
-      16.  00:0000  (00:831C)           HEXTOSTRING_DEST    = HEXTOSTRING_SRC+4     ; +28
-      17.  00:0000                      
-      18.  00:0000                      ; Calls the function ID.
-      19.  00:0000                      MACRO PROCYON cmd
-      20.  00:0000                    <     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
-      21.  00:0000                    < ENDMACRO
+       1.  00:0000  (00:0000)           P_STRTOHEX8		= 0
+       2.  00:0000  (00:0001)           P_STRTOHEX16	= 1
+       3.  00:0000  (00:0002)           P_HEX8TOSTR		= 2
+       4.  00:0000  (00:0003)           P_HEX16TOSTR	= 3
+       5.  00:0000  (00:0004)           P_PRINTF        = 4
+       6.  00:0000  (00:0005)           P_B2D8          = 5
+       7.  00:0000  (00:0006)           P_B2D16         = 6
+       8.  00:0000  (00:0007)           P_B2D32         = 7
+       9.  00:0000                      
+      10.  00:0000                      ; Function table base address.
+      11.  00:0000  (00:F100)           PROCYON_PUBLIC_API_BASE = $F100
+      12.  00:0000                      
+      13.  00:0000                      ; Variable base address.
+      14.  00:0000  (00:8300)           PROCAPI_DATA_BASE = $8300
+      15.  00:0000                      
+      16.  00:0000                      ; Offsets for public ProcAPI data values.
+      17.  00:0000  (00:8300)           STRINGTOHEX_SRC     = PROCAPI_DATA_BASE     ; +0
+      18.  00:0000  (00:8310)           STRINGTOHEX_DEST    = STRINGTOHEX_SRC+16    ; +16
+      19.  00:0000  (00:8318)           HEXTOSTRING_SRC     = STRINGTOHEX_DEST+8    ; +24
+      20.  00:0000  (00:831C)           HEXTOSTRING_DEST    = HEXTOSTRING_SRC+4     ; +28
+      21.  00:0000                      
+      22.  00:0000                      ; Calls the function ID.
+      23.  00:0000                      MACRO PROCYON cmd
+      24.  00:0000                    <     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
+      25.  00:0000                    < ENDMACRO
        8   00:0000                          include "rc2014.inc"
        1.  00:0000                      ; Function code equates.
        2.  00:0000  (00:0000)           B_RESET			= 0
@@ -182,660 +186,419 @@ Errors: 0
       77   01:905C                      ;;;;;;;;;;;;;;;;;;;;;
       78   01:905C                      
       79   01:905C                      START:
-      80   01:905C  11 7F 93                ld		de,strATADetect
+      80   01:905C  11 02 92                ld		de,strATADetect
       81   01:905F  0E 02               	ld		c,B_STROUT
       82   01:9061                      	DoBIOS
       82   01:9061  E7                >   rst $20
       83   01:9062                      
       84   01:9062  F3                      di
       85   01:9063                      
-      86   01:9063  CD 4D 92                call    ATA_Set8BitMode
-      87   01:9066                      
-      88   01:9066  21 00 A0                ld      hl,bufATACmdResponse
-      89   01:9069  CD 56 92                call    ATA_DoIdentify
-      90   01:906C                      
-      91   01:906C  11 EE 93                ld		de,strATAFieldSerial
-      92   01:906F  0E 02               	ld		c,B_STROUT
-      93   01:9071                      	DoBIOS
-      93   01:9071  E7                >   rst $20
-      94   01:9072  21 00 A0                ld      hl,bufATACmdResponse
-      95   01:9075  CD 9F 91                call    PrintSerialNumber
-      96   01:9078  11 7C 93                ld		de,strCRLF
-      97   01:907B  0E 02               	ld		c,B_STROUT
-      98   01:907D                      	DoBIOS
-      98   01:907D  E7                >   rst $20
-      99   01:907E                          
-     100   01:907E  11 CE 93                ld		de,strATAFieldModel
-     101   01:9081  0E 02               	ld		c,B_STROUT
-     102   01:9083                      	DoBIOS
-     102   01:9083  E7                >   rst $20
-     103   01:9084  21 00 A0                ld      hl,bufATACmdResponse
-     104   01:9087  CD BA 91                call    PrintModelNumber
-     105   01:908A  11 7C 93                ld		de,strCRLF
-     106   01:908D  0E 02               	ld		c,B_STROUT
-     107   01:908F                      	DoBIOS
-     107   01:908F  E7                >   rst $20
-     108   01:9090                      
-     109   01:9090  11 FE 93                ld		de,strATAFieldSectors
-     110   01:9093  0E 02               	ld		c,B_STROUT
-     111   01:9095                      	DoBIOS
-     111   01:9095  E7                >   rst $20
-     112   01:9096  21 00 A0                ld      hl,bufATACmdResponse
-     113   01:9099  CD D5 91                call    PrintSectorCount
-     114   01:909C  11 7C 93                ld		de,strCRLF
-     115   01:909F  0E 02               	ld		c,B_STROUT
-     116   01:90A1                      	DoBIOS
-     116   01:90A1  E7                >   rst $20
-     117   01:90A2                      
-     118   01:90A2  21 00 A2                ld      hl,bufATASectorBuffer
-     119   01:90A5  22 4E 94                ld      (ATA_DataBuffer),hl
-     120   01:90A8  3E 01                   ld      a,1
-     121   01:90AA  32 53 94                ld      (ATA_SectorsToRead),a
-     122   01:90AD  3E 00                   ld      a,0
-     123   01:90AF  32 50 94                ld      (ATA_LBA_Lo),a
-     124   01:90B2  32 51 94                ld      (ATA_LBA_Mid),a
-     125   01:90B5  32 52 94                ld      (ATA_LBA_Hi),a
-     126   01:90B8  CD 8E 92                call    ATA_ReadLBASector
-     127   01:90BB                      
-     128   01:90BB  CD 32 91                call    PrintBPBInfo
-     129   01:90BE                      
-     130   01:90BE  FB                      ei
-     131   01:90BF                      
-     132   01:90BF  C9                      ret
-     133   01:90C0                      
-     134   01:90C0                      ;;;;;;;;;;;;;;;;
-     135   01:90C0                      
-     136   01:90C0                      strBPBHeader:   db  " B P B    I N F O ",0
-     136   01:90C0  20 42 20 50 20 42 20 20 20 20 49 20 4E 20 46 20 
-     136   01:90D0  4F 20 00 
-     137   01:90D3                      strBPBLabel:    db  "           Label: ",0
-     137   01:90D3  20 20 20 20 20 20 20 20 20 20 20 4C 61 62 65 6C 
-     137   01:90E3  3A 20 00 
-     138   01:90E6                      strBPBSectors:  db  "  No. of Sectors: ",0
-     138   01:90E6  20 20 4E 6F 2E 20 6F 66 20 53 65 63 74 6F 72 73 
-     138   01:90F6  3A 20 00 
-     139   01:90F9                      strBPBbps:      db  "Bytes per Sector: ",0
-     139   01:90F9  42 79 74 65 73 20 70 65 72 20 53 65 63 74 6F 72 
-     139   01:9109  3A 20 00 
-     140   01:910C                      strBPBmd:       db  "Media Descriptor: ",0
-     140   01:910C  4D 65 64 69 61 20 44 65 73 63 72 69 70 74 6F 72 
-     140   01:911C  3A 20 00 
-     141   01:911F                      strBPBfsType:   db  "Reported FS Type: ",0
-     141   01:911F  52 65 70 6F 72 74 65 64 20 46 53 20 54 79 70 65 
-     141   01:912F  3A 20 00 
-     142   01:9132                      
-     143   01:9132                      PrintBPBInfo:
-     144   01:9132  11 C0 90                ld		de,strBPBHeader
-     145   01:9135  0E 02               	ld		c,B_STROUT
-     146   01:9137                      	DoBIOS
-     146   01:9137  E7                >   rst $20
-     147   01:9138  11 7C 93                ld		de,strCRLF
-     148   01:913B  0E 02               	ld		c,B_STROUT
-     149   01:913D                      	DoBIOS
-     149   01:913D  E7                >   rst $20
-     150   01:913E                      
-     151   01:913E                      .volumeLabel:
-     152   01:913E  11 D3 90                ld      de,strBPBLabel
-     153   01:9141  0E 02                   ld      c,B_STROUT
-     154   01:9143                          DoBIOS
-     154   01:9143  E7                >   rst $20
-     155   01:9144                      
-     156   01:9144  21 00 A2                ld      hl,bufATASectorBuffer
-     157   01:9147  01 2B 00                ld      bc,Fat12BPB.volumeLabel
-     158   01:914A  09                      add     hl,bc
-     159   01:914B                      
-     160   01:914B  06 0B                   ld      b,11
-     161   01:914D                      .vlLoop:
-     162   01:914D  C5                      push    bc
-     163   01:914E  E5                      push    hl
-     164   01:914F  5E                      ld		e,(hl)
-     165   01:9150  0E 01               	ld		c,B_CONOUT
-     166   01:9152                      	DoBIOS
-     166   01:9152  E7                >   rst $20
-     167   01:9153  E1                      pop     hl
-     168   01:9154  C1                      pop     bc
-     169   01:9155  23                      inc     hl
-     170   01:9156  10 F5                   djnz    .vlLoop
-     171   01:9158                      
-     172   01:9158  11 7C 93                ld		de,strCRLF
-     173   01:915B  0E 02               	ld		c,B_STROUT
-     174   01:915D                      	DoBIOS
-     174   01:915D  E7                >   rst $20
-     175   01:915E                      
-     176   01:915E                      .bytesPerSector:
-     177   01:915E  11 F9 90                ld      de,strBPBbps
-     178   01:9161  0E 02                   ld      c,B_STROUT
-     179   01:9163                          DoBIOS
-     179   01:9163  E7                >   rst $20
-     180   01:9164                      
-     181   01:9164  21 00 A2                ld      hl,bufATASectorBuffer
-     182   01:9167  01 0B 00                ld      bc,Fat12BPB.bytesPerSector
-     183   01:916A  09                      add     hl,bc
-     184   01:916B  4E                      ld      c,(hl)
-     185   01:916C  23                      inc     hl
-     186   01:916D  46                      ld      b,(hl)
-     187   01:916E  C5                      push    bc
-     188   01:916F  E1                      pop     hl
-     189   01:9170  CD D6 92                call    B2D16
-     190   01:9173  E5                      push    hl
-     191   01:9174  D1                      pop     de
-     192   01:9175  0E 02               	ld		c,B_STROUT
-     193   01:9177                      	DoBIOS  
-     193   01:9177  E7                >   rst $20
-     194   01:9178                      
-     195   01:9178  11 7C 93                ld		de,strCRLF
-     196   01:917B  0E 02               	ld		c,B_STROUT
-     197   01:917D                      	DoBIOS  
-     197   01:917D  E7                >   rst $20
-     198   01:917E                      
-     199   01:917E                      .fsType:
-     200   01:917E  11 1F 91                ld      de,strBPBfsType
-     201   01:9181  0E 02                   ld      c,B_STROUT
-     202   01:9183                          DoBIOS
-     202   01:9183  E7                >   rst $20
-     203   01:9184                      
-     204   01:9184  21 00 A2                ld      hl,bufATASectorBuffer
-     205   01:9187  01 36 00                ld      bc,Fat12BPB.fsType
-     206   01:918A  09                      add     hl,bc
-     207   01:918B                      
-     208   01:918B  06 08                   ld      b,8
-     209   01:918D                      .fsTypeLoop:
-     210   01:918D  C5                      push    bc
-     211   01:918E  E5                      push    hl
-     212   01:918F  5E                      ld		e,(hl)
-     213   01:9190  0E 01               	ld		c,B_CONOUT
-     214   01:9192                      	DoBIOS
-     214   01:9192  E7                >   rst $20
-     215   01:9193  E1                      pop     hl
-     216   01:9194  C1                      pop     bc
-     217   01:9195  23                      inc     hl
-     218   01:9196  10 F5                   djnz    .fsTypeLoop
-     219   01:9198                      
-     220   01:9198  11 7C 93                ld		de,strCRLF
-     221   01:919B  0E 02               	ld		c,B_STROUT
-     222   01:919D                      	DoBIOS
-     222   01:919D  E7                >   rst $20
-     223   01:919E                      
-     224   01:919E  C9                      ret
-     225   01:919F                      
-     226   01:919F                      PrintSerialNumber:
-     227   01:919F                          ; Input: HL is a ptr to the IDENTIFY response
-     228   01:919F                          
-     229   01:919F                          ; Serial number is at buf+20 to buf+38 with swapped endianness.
-     230   01:919F  01 14 00                ld      bc,20
-     231   01:91A2  09                      add     hl,bc
-     232   01:91A3                      
-     233   01:91A3  06 0A                   ld      b,10
-     234   01:91A5                      .loop:
-     235   01:91A5  C5                      push    bc
-     236   01:91A6  23                      inc     hl
-     237   01:91A7  E5                      push    hl
-     238   01:91A8  5E                      ld		e,(hl)
-     239   01:91A9  0E 01               	ld		c,B_CONOUT
-     240   01:91AB                      	DoBIOS
-     240   01:91AB  E7                >   rst $20
-     241   01:91AC  E1                      pop     hl
-     242   01:91AD  2B                      dec     hl
-     243   01:91AE  E5                      push    hl
-     244   01:91AF  5E                      ld		e,(hl)
-     245   01:91B0  0E 01               	ld		c,B_CONOUT
-     246   01:91B2                      	DoBIOS
-     246   01:91B2  E7                >   rst $20
-     247   01:91B3  E1                      pop     hl
-     248   01:91B4  23                      inc     hl
-     249   01:91B5  23                      inc     hl
-     250   01:91B6  C1                      pop     bc
-     251   01:91B7  10 EC                   djnz    .loop
-     252   01:91B9                      
-     253   01:91B9  C9                      ret
-     254   01:91BA                      
-     255   01:91BA                      PrintModelNumber:
-     256   01:91BA                          ; Input: HL is a ptr to the IDENTIFY response
-     257   01:91BA                          ; Serial number is at buf+54 to buf+92 with swapped endianness.
-     258   01:91BA  01 36 00                ld      bc,54
-     259   01:91BD  09                      add     hl,bc
-     260   01:91BE                      
-     261   01:91BE  06 13                   ld      b,19
-     262   01:91C0                      .loop:
-     263   01:91C0  C5                      push    bc
-     264   01:91C1  23                      inc     hl
-     265   01:91C2  E5                      push    hl
-     266   01:91C3  5E                      ld		e,(hl)
-     267   01:91C4  0E 01               	ld		c,B_CONOUT
-     268   01:91C6                      	DoBIOS
-     268   01:91C6  E7                >   rst $20
-     269   01:91C7  E1                      pop     hl
-     270   01:91C8  2B                      dec     hl
-     271   01:91C9  E5                      push    hl
-     272   01:91CA  5E                      ld		e,(hl)
-     273   01:91CB  0E 01               	ld		c,B_CONOUT
-     274   01:91CD                      	DoBIOS
-     274   01:91CD  E7                >   rst $20
-     275   01:91CE  E1                      pop     hl
-     276   01:91CF  23                      inc     hl
-     277   01:91D0  23                      inc     hl
-     278   01:91D1  C1                      pop     bc
-     279   01:91D2  10 EC                   djnz    .loop
-     280   01:91D4                      
-     281   01:91D4  C9                      ret
-     282   01:91D5                      
-     283   01:91D5                      PrintSectorCount:
-     284   01:91D5                          ; Input: HL is a ptr to the IDENTIFY response
-     285   01:91D5                          ; Sector count is a DWORD at buf+120
-     286   01:91D5  E5                      push    hl
-     287   01:91D6                      
-     288   01:91D6  01 78 00                ld      bc,120
-     289   01:91D9  09                      add     hl,bc
-     290   01:91DA                      
-     291   01:91DA  7E                      ld      a,(hl)
-     292   01:91DB  F5                      push    af      ;8
-     293   01:91DC  23                      inc     hl
-     294   01:91DD  7E                      ld      a,(hl)
-     295   01:91DE  F5                      push    af      ;16
-     296   01:91DF  23                      inc     hl
-     297   01:91E0  7E                      ld      a,(hl)
-     298   01:91E1  F5                      push    af      ;24
-     299   01:91E2  23                      inc     hl
-     300   01:91E3  7E                      ld      a,(hl)
-     301   01:91E4                          
-     302   01:91E4  57                      ld      d,a
-     303   01:91E5  F1                      pop     af
-     304   01:91E6  5F                      ld      e,a
-     305   01:91E7  F1                      pop     af
-     306   01:91E8  67                      ld      h,a
-     307   01:91E9  F1                      pop     af
-     308   01:91EA  6F                      ld      l,a
-     309   01:91EB  CD DA 92                call    B2D32
-     310   01:91EE  E5                   	push    hl
-     311   01:91EF  D1                      pop     de
-     312   01:91F0  0E 02               	ld		c,B_STROUT
-     313   01:91F2                      	DoBIOS   
-     313   01:91F2  E7                >   rst $20
-     314   01:91F3                      
-     315   01:91F3                          ;;
-     316   01:91F3  1E 20                   ld		e," "
-     317   01:91F5  0E 01               	ld		c,B_CONOUT
-     318   01:91F7                      	DoBIOS
-     318   01:91F7  E7                >   rst $20
-     319   01:91F8  1E 28                   ld		e,"("
-     320   01:91FA  0E 01               	ld		c,B_CONOUT
-     321   01:91FC                      	DoBIOS
-     321   01:91FC  E7                >   rst $20
-     322   01:91FD  1E 24                   ld		e,"$"
-     323   01:91FF  0E 01               	ld		c,B_CONOUT
-     324   01:9201                      	DoBIOS
-     324   01:9201  E7                >   rst $20
-     325   01:9202                      
-     326   01:9202  E1                      pop     hl
-     327   01:9203  01 7B 00                ld      bc,123
-     328   01:9206  09                      add     hl,bc
-     329   01:9207                      
-     330   01:9207  E5                      push    hl
-     331   01:9208  7E                      ld      a,(hl)
-     332   01:9209  32 18 83            	ld		(HEXTOSTRING_SRC),a
-     333   01:920C                          PROCYON B_HEX8TOSTR
-     333   01:920C  CD 06 F1          >     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
-     334   01:920F                      
-     335   01:920F  11 1C 83            	ld		de,HEXTOSTRING_DEST
-     336   01:9212  0E 02               	ld		c,B_STROUT
-     337   01:9214                      	DoBIOS
-     337   01:9214  E7                >   rst $20
-     338   01:9215  E1                      pop     hl
-     339   01:9216  2B                      dec     hl    
-     340   01:9217  E5                      push    hl
-     341   01:9218  7E                      ld      a,(hl)
-     342   01:9219  32 18 83            	ld		(HEXTOSTRING_SRC),a
-     343   01:921C                      	PROCYON B_HEX8TOSTR
-     343   01:921C  CD 06 F1          >     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
-     344   01:921F  11 1C 83            	ld		de,HEXTOSTRING_DEST
-     345   01:9222  0E 02               	ld		c,B_STROUT
-     346   01:9224                      	DoBIOS
-     346   01:9224  E7                >   rst $20
-     347   01:9225  E1                      pop     hl
-     348   01:9226  2B                      dec     hl    
-     349   01:9227  E5                      push    hl
-     350   01:9228  7E                      ld      a,(hl)
-     351   01:9229  32 18 83            	ld		(HEXTOSTRING_SRC),a
-     352   01:922C                      	PROCYON B_HEX8TOSTR
-     352   01:922C  CD 06 F1          >     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
-     353   01:922F  11 1C 83            	ld		de,HEXTOSTRING_DEST
-     354   01:9232  0E 02               	ld		c,B_STROUT
-     355   01:9234                      	DoBIOS
-     355   01:9234  E7                >   rst $20
-     356   01:9235  E1                      pop     hl
-     357   01:9236  2B                      dec     hl    
-     358   01:9237  E5                      push    hl
-     359   01:9238  7E                      ld      a,(hl)
-     360   01:9239  32 18 83            	ld		(HEXTOSTRING_SRC),a
-     361   01:923C                      	PROCYON B_HEX8TOSTR
-     361   01:923C  CD 06 F1          >     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
-     362   01:923F  11 1C 83            	ld		de,HEXTOSTRING_DEST
-     363   01:9242  0E 02               	ld		c,B_STROUT
-     364   01:9244                      	DoBIOS
-     364   01:9244  E7                >   rst $20
-     365   01:9245  E1                      pop     hl
-     366   01:9246  2B                      dec     hl 
-     367   01:9247                      
-     368   01:9247  1E 29                   ld		e,")"
-     369   01:9249  0E 01               	ld		c,B_CONOUT
-     370   01:924B                      	DoBIOS
-     370   01:924B  E7                >   rst $20
-     371   01:924C                      
-     372   01:924C                      
-     373   01:924C  C9                      ret
-     374   01:924D                      
-     375   01:924D                      ATA_Set8BitMode:
-     376   01:924D  3E 01                   ld      a,$01
-     377   01:924F  D3 11                   out     (ATA_REG_FEATURES),a
-     378   01:9251                      
-     379   01:9251  3E EF                   ld      a,ATA_CMD_SET_FEATURE   ; SET-FEATURE
-     380   01:9253  D3 17                   out     (ATA_REG_COMMAND),a
-     381   01:9255  C9                      ret
-     382   01:9256                      
-     383   01:9256                      ATA_DoIdentify:
-     384   01:9256                          ; Send an IDENTIFY command.
-     385   01:9256                          ; Write the 512-byte response to (HL).
-     386   01:9256                      
-     387   01:9256  E5                      push    hl
-     388   01:9257                      
-     389   01:9257                          ; Select the master drive.
-     390   01:9257  3E A0                   ld      a,$A0
-     391   01:9259  D3 16                   out     (ATA_REG_DRIVESELECT),a
-     392   01:925B                          ; Set sector count and LBA registers to 0
-     393   01:925B  3E 00                   ld      a,0
-     394   01:925D  D3 12                   out     (ATA_REG_SECTORCOUNT),a
-     395   01:925F  D3 15                   out     (ATA_REG_LBAHI),a
-     396   01:9261  D3 14                   out     (ATA_REG_LBAMID),a
-     397   01:9263  D3 13                   out     (ATA_REG_LBALO),a
-     398   01:9265  3E EC                   ld      a,ATA_CMD_IDENTIFY
-     399   01:9267  D3 17                   out     (ATA_REG_COMMAND),a
-     400   01:9269                      
-     401   01:9269  CD C5 92                call    ATA_PollDriveNotBusy
-     402   01:926C  CD CC 92                call    ATA_PollDriveHasData
-     403   01:926F                      
-     404   01:926F  11 AE 93                ld		de,strATAIdent
-     405   01:9272  0E 02               	ld		c,B_STROUT
-     406   01:9274                      	DoBIOS
-     406   01:9274  E7                >   rst $20
-     407   01:9275                      
-     408   01:9275                          ; Read 512 bytes into (HL)
-     409   01:9275  E1                      pop     hl
-     410   01:9276  06 00                   ld      b,0
-     411   01:9278                      .readloop1:
-     412   01:9278  DB 10                   in      a,(ATA_REG_DATA)
-     413   01:927A  77                      ld      (hl),a
-     414   01:927B  23                      inc     hl
-     415   01:927C  10 FA                   djnz    .readloop1
-     416   01:927E                      .readloop2:
-     417   01:927E  DB 10                   in      a,(ATA_REG_DATA)
-     418   01:9280  77                      ld      (hl),a
-     419   01:9281  23                      inc     hl
-     420   01:9282  10 FA                   djnz    .readloop2
-     421   01:9284                      
-     422   01:9284  C9                      ret
-     423   01:9285                      
-     424   01:9285                      ATA_DrainBuffer:
-     425   01:9285  DB 17                   in      a,(ATA_REG_STATUS)
-     426   01:9287  FE 08                   cp      ATA_STATUS_DRQ
-     427   01:9289  C0                      ret     nz
-     428   01:928A  DB 10                   in      a,(ATA_REG_DATA)
-     429   01:928C  18 F7                   jr      ATA_DrainBuffer
-     430   01:928E                      
-     431   01:928E                      ;;;;;;;;;;;;;;;;
-     432   01:928E                      ATA_ReadLBASector:
-     433   01:928E  CD 85 92                call    ATA_DrainBuffer
-     434   01:9291                      
-     435   01:9291  3E E0                   ld      a,ATA_DRIVE_MASTER
-     436   01:9293  D3 16                   out     (ATA_REG_DRIVESELECT),a
-     437   01:9295                      
-     438   01:9295                          ; One sector
-     439   01:9295  3A 53 94                ld      a,(ATA_SectorsToRead)
-     440   01:9298  D3 12                   out     (ATA_REG_SECTORCOUNT),a
-     441   01:929A                      
-     442   01:929A                          ; Write LBA value
-     443   01:929A                          ; for now, just read sector 0
-     444   01:929A  3A 50 94                ld      a,(ATA_LBA_Lo)
-     445   01:929D  D3 13                   out     (ATA_REG_LBALO),a
-     446   01:929F  3A 51 94                ld      a,(ATA_LBA_Mid)
-     447   01:92A2  D3 14                   out     (ATA_REG_LBAMID),a
-     448   01:92A4  3A 52 94                ld      a,(ATA_LBA_Hi)
-     449   01:92A7  D3 15                   out     (ATA_REG_LBAHI),a
-     450   01:92A9                      
-     451   01:92A9  3E 20                   ld      a,ATA_CMD_READ_SECTORS
-     452   01:92AB  D3 17                   out     (ATA_REG_COMMAND),a
-     453   01:92AD                      
-     454   01:92AD  CD C5 92                call    ATA_PollDriveNotBusy
-     455   01:92B0  CD CC 92                call    ATA_PollDriveHasData
-     456   01:92B3                      
-     457   01:92B3                          ; Read 512 bytes into the sector buffer
-     458   01:92B3  2A 4E 94                ld      hl,(ATA_DataBuffer)
-     459   01:92B6  06 00                   ld      b,0
-     460   01:92B8                      .readloop1:
-     461   01:92B8  DB 10                   in      a,(ATA_REG_DATA)
-     462   01:92BA  77                      ld      (hl),a
-     463   01:92BB  23                      inc     hl
-     464   01:92BC  10 FA                   djnz    .readloop1
-     465   01:92BE                      .readloop2:
-     466   01:92BE  DB 10                   in      a,(ATA_REG_DATA)
-     467   01:92C0  77                      ld      (hl),a
-     468   01:92C1  23                      inc     hl
-     469   01:92C2  10 FA                   djnz    .readloop2    
-     470   01:92C4                      
-     471   01:92C4  C9                      ret
-     472   01:92C5                      
-     473   01:92C5                      ATA_PollDriveNotBusy:
-     474   01:92C5                          ; Poll the status port until BSY is clear.
-     475   01:92C5  DB 17                   in      a,(ATA_REG_STATUS)
-     476   01:92C7  E6 80                   and     ATA_STATUS_BSY
-     477   01:92C9  28 FA                   jr      z,ATA_PollDriveNotBusy
-     478   01:92CB  C9                      ret
-     479   01:92CC                      
-     480   01:92CC                      ATA_PollDriveHasData:
-     481   01:92CC                          ; Poll the status port until DRQ is set.
-     482   01:92CC  DB 17                   in      a,(ATA_REG_STATUS)
-     483   01:92CE  E6 08                   and     ATA_STATUS_DRQ
-     484   01:92D0  28 FA                   jr      z,ATA_PollDriveHasData
-     485   01:92D2  C9                      ret    
-     486   01:92D3                      
-     487   01:92D3                          include "hex2ascii.z80"
-       1.  01:92D3                      ; Combined routine for conversion of different sized binary numbers into
-       2.  01:92D3                      ; directly printable ASCII(Z)-string
-       3.  01:92D3                      ; Input value in registers, number size and -related to that- registers to fill
-       4.  01:92D3                      ; is selected by calling the correct entry:
-       5.  01:92D3                      ;
-       6.  01:92D3                      ;  entry  inputregister(s)  decimal value 0 to:
-       7.  01:92D3                      ;   B2D8             A                    255  (3 digits)
-       8.  01:92D3                      ;   B2D16           HL                  65535   5   "
-       9.  01:92D3                      ;   B2D24         E:HL               16777215   8   "
-      10.  01:92D3                      ;   B2D32        DE:HL             4294967295  10   "
-      11.  01:92D3                      ;   B2D48     BC:DE:HL        281474976710655  15   "
-      12.  01:92D3                      ;   B2D64  IX:BC:DE:HL   18446744073709551615  20   "
-      13.  01:92D3                      ;
-      14.  01:92D3                      ; The resulting string is placed into a small buffer attached to this routine,
-      15.  01:92D3                      ; this buffer needs no initialization and can be modified as desired.
-      16.  01:92D3                      ; The number is aligned to the right, and leading 0's are replaced with spaces.
-      17.  01:92D3                      ; On exit HL points to the first digit, (B)C = number of decimals
-      18.  01:92D3                      ; This way any re-alignment / postprocessing is made easy.
-      19.  01:92D3                      ; Changes: AF,BC,DE,HL,IX
-      20.  01:92D3                      ; P.S. some examples below
-      21.  01:92D3                      
-      22.  01:92D3                      ; by Alwin Henseler
-      23.  01:92D3                      
-      24.  01:92D3  (01)                    PAGE 1
-      25.  01:92D3                      
-      26.  01:92D3  26 00               B2D8:    LD H,0
-      27.  01:92D5  6F                           LD L,A
-      28.  01:92D6  1E 00               B2D16:   LD E,0
-      29.  01:92D8  16 00               B2D24:   LD D,0
-      30.  01:92DA  01 00 00            B2D32:   LD BC,0
-      31.  01:92DD  DD 21 00 00         B2D48:   LD IX,0          ; zero all non-used bits
-      32.  01:92E1  22 5F 93            B2D64:   LD (B2DINV),HL
-      33.  01:92E4  ED 53 61 93                  LD (B2DINV+2),DE
-      34.  01:92E8  ED 43 63 93                  LD (B2DINV+4),BC
-      35.  01:92EC  DD 22 65 93                  LD (B2DINV+6),IX ; place full 64-bit input value in buffer
-      36.  01:92F0  21 67 93                     LD HL,B2DBUF
-      37.  01:92F3  11 68 93                     LD DE,B2DBUF+1
-      38.  01:92F6  36 20                        LD (HL)," "
-      39.  01:92F8  (01:92F7)           B2DFILC: EQU $-1         ; address of fill-character
-      40.  01:92F8  01 12 00                     LD BC,18
-      41.  01:92FB  ED B0                        LDIR            ; fill 1st 19 bytes of buffer with spaces
-      42.  01:92FD  ED 43 7A 93                  LD (B2DEND-1),BC ;set BCD value to "0" & place terminating 0
-      43.  01:9301  1E 01                        LD E,1          ; no. of bytes in BCD value
-      44.  01:9303  21 67 93                     LD HL,B2DINV+8  ; (address MSB input)+1
-      45.  01:9306  01 09 09                     LD BC,#0909
-      46.  01:9309  AF                           XOR A
-      47.  01:930A  05                  B2DSKP0: DEC B
-      48.  01:930B  28 29                        JR Z,B2DSIZ     ; all 0: continue with postprocessing
-      49.  01:930D  2B                           DEC HL
-      50.  01:930E  B6                           OR (HL)         ; find first byte <>0
-      51.  01:930F  28 F9                        JR Z,B2DSKP0
-      52.  01:9311  0D                  B2DFND1: DEC C
-      53.  01:9312  17                           RLA
-      54.  01:9313  30 FC                        JR NC,B2DFND1   ; determine no. of most significant 1-bit
-      55.  01:9315  1F                           RRA
-      56.  01:9316  57                           LD D,A          ; byte from binary input value
-      57.  01:9317  E5                  B2DLUS2: PUSH HL
-      58.  01:9318  C5                           PUSH BC
-      59.  01:9319  21 7A 93            B2DLUS1: LD HL,B2DEND-1  ; address LSB of BCD value
-      60.  01:931C  43                           LD B,E          ; current length of BCD value in bytes
-      61.  01:931D  CB 12                        RL D            ; highest bit from input value -> carry
-      62.  01:931F  7E                  B2DLUS0: LD A,(HL)
-      63.  01:9320  8F                           ADC A,A
-      64.  01:9321  27                           DAA
-      65.  01:9322  77                           LD (HL),A       ; double 1 BCD byte from intermediate result
-      66.  01:9323  2B                           DEC HL
-      67.  01:9324  10 F9                        DJNZ B2DLUS0    ; and go on to double entire BCD value (+carry!)
-      68.  01:9326  30 03                        JR NC,B2DNXT
-      69.  01:9328  1C                           INC E           ; carry at MSB -> BCD value grew 1 byte larger
-      70.  01:9329  36 01                        LD (HL),1       ; initialize new MSB of BCD value
-      71.  01:932B  0D                  B2DNXT:  DEC C
-      72.  01:932C  20 EB                        JR NZ,B2DLUS1   ; repeat for remaining bits from 1 input byte
-      73.  01:932E  C1                           POP BC          ; no. of remaining bytes in input value
-      74.  01:932F  0E 08                        LD C,8          ; reset bit-counter
-      75.  01:9331  E1                           POP HL          ; pointer to byte from input value
-      76.  01:9332  2B                           DEC HL
-      77.  01:9333  56                           LD D,(HL)       ; get next group of 8 bits
-      78.  01:9334  10 E1                        DJNZ B2DLUS2    ; and repeat until last byte from input value
-      79.  01:9336  21 7B 93            B2DSIZ:  LD HL,B2DEND    ; address of terminating 0
-      80.  01:9339  4B                           LD C,E          ; size of BCD value in bytes
-      81.  01:933A  B7                           OR A
-      82.  01:933B  ED 42                        SBC HL,BC       ; calculate address of MSB BCD
-      83.  01:933D  54                           LD D,H
-      84.  01:933E  5D                           LD E,L
-      85.  01:933F  ED 42                        SBC HL,BC
-      86.  01:9341  EB                           EX DE,HL        ; HL=address BCD value, DE=start of decimal value
-      87.  01:9342  41                           LD B,C          ; no. of bytes BCD
-      88.  01:9343  CB 21                        SLA C           ; no. of bytes decimal (possibly 1 too high)
-      89.  01:9345  3E 30                        LD A,"0"
-      90.  01:9347  ED 6F                        RLD             ; shift bits 4-7 of (HL) into bit 0-3 of A
-      91.  01:9349  FE 30                        CP "0"          ; (HL) was > 9h?
-      92.  01:934B  20 06                        JR NZ,B2DEXPH   ; if yes, start with recording high digit
-      93.  01:934D  0D                           DEC C           ; correct number of decimals
-      94.  01:934E  13                           INC DE          ; correct start address
-      95.  01:934F  18 04                        JR B2DEXPL      ; continue with converting low digit
-      96.  01:9351  ED 6F               B2DEXP:  RLD             ; shift high digit (HL) into low digit of A
-      97.  01:9353  12                  B2DEXPH: LD (DE),A       ; record resulting ASCII-code
-      98.  01:9354  13                           INC DE
-      99.  01:9355  ED 6F               B2DEXPL: RLD
-     100.  01:9357  12                           LD (DE),A
-     101.  01:9358  13                           INC DE
-     102.  01:9359  23                           INC HL          ; next BCD-byte
-     103.  01:935A  10 F5                        DJNZ B2DEXP     ; and go on to convert each BCD-byte into 2 ASCII
-     104.  01:935C  ED 42                        SBC HL,BC       ; return with HL pointing to 1st decimal
-     105.  01:935E  C9                           RET
-     106.  01:935F                      
-     107.  01:935F  (02)                    PAGE 2
-     108.  02:935F  00 (8)              B2DINV:  DS 8            ; space for 64-bit input value (LSB first)
-     109.  02:9367  00 (20)             B2DBUF:  DS 20           ; space for 20 decimal digits
-     110.  02:937B  00 (1)              B2DEND:  DS 1            ; space for terminating 0
-     111.  02:937C                      
-     112.  02:937C                      ;      EXAMPLES
-     113.  02:937C                      ;      --------
-     114.  02:937C                      
-     115.  02:937C                      ; (In these examples, it is assumed there exists a subroutine PRINT, that
-     116.  02:937C                      ; prints a string (terminated by a 0-byte) starting at address [HL] )
-     117.  02:937C                      
-     118.  02:937C                      
-     119.  02:937C                      ; Print 1 byte, as follows:
-     120.  02:937C                      ;  20
-     121.  02:937C                      ;   7
-     122.  02:937C                      ; 145  etc.
-     123.  02:937C                      ; by:   LD A,byte
-     124.  02:937C                      ;       CALL B2D8
-     125.  02:937C                      ;       LD HL,B2DEND-3
-     126.  02:937C                      ;       CALL PRINT
-     127.  02:937C                      
-     128.  02:937C                      
-     129.  02:937C                      ; Print a 24-bit value, as follows:
-     130.  02:937C                      ; 9345
-     131.  02:937C                      ; 76856366
-     132.  02:937C                      ; 534331
-     133.  02:937C                      ; by:   LD E,bit23-16
-     134.  02:937C                      ;       LD HL,bit15-0
-     135.  02:937C                      ;       CALL B2D24
-     136.  02:937C                      ;       CALL PRINT
-     137.  02:937C                      
-     138.  02:937C                      
-     139.  02:937C                      ; Print a 48-bit value, like
-     140.  02:937C                      ;     14984366484
-     141.  02:937C                      ;              49
-     142.  02:937C                      ; 123456789012345
-     143.  02:937C                      ;         3155556 etc.
-     144.  02:937C                      ; by:
-     145.  02:937C                      ;       LD BC,bit47-32
-     146.  02:937C                      ;       LD DE,bit31-16
-     147.  02:937C                      ;       LD HL,bit15-0
-     148.  02:937C                      ;       CALL B2D48
-     149.  02:937C                      ;       LD HL,B2DEND-15
-     150.  02:937C                      ;       CALL PRINT
-     488   02:937C                      
-     489   02:937C                      ;;;;;;;;;;;;;;;;
-     490   02:937C                      
-     491   02:937C                      strCRLF:
-     492   02:937C  0D 0A 00            	db  13,10,0
-     493   02:937F                      
-     494   02:937F                      strATADetect:   db "* Attempting to detect ATA drive at I/O $10.",13,10,0
-     494   02:937F  2A 20 41 74 74 65 6D 70 74 69 6E 67 20 74 6F 20 
-     494   02:938F  64 65 74 65 63 74 20 41 54 41 20 64 72 69 76 65 
-     494   02:939F  20 61 74 20 49 2F 4F 20 24 31 30 2E 0D 0A 00 
-     495   02:93AE                      strATAIdent:    db  "* Retrieving IDENTIFY data...",13,10,0
-     495   02:93AE  2A 20 52 65 74 72 69 65 76 69 6E 67 20 49 44 45 
-     495   02:93BE  4E 54 49 46 59 20 64 61 74 61 2E 2E 2E 0D 0A 00 
-     496   02:93CE                      
-     497   02:93CE                      strATAFieldModel:   db  " Model number: ",0
-     497   02:93CE  20 4D 6F 64 65 6C 20 6E 75 6D 62 65 72 3A 20 00 
-     498   02:93DE                      strATAFieldFW:      db  " Firmware ver: ",0
-     498   02:93DE  20 46 69 72 6D 77 61 72 65 20 76 65 72 3A 20 00 
-     499   02:93EE                      strATAFieldSerial:  db  "Serial number: ",0
-     499   02:93EE  53 65 72 69 61 6C 20 6E 75 6D 62 65 72 3A 20 00 
-     500   02:93FE                      strATAFieldSectors: db  "      Sectors: ",0
-     500   02:93FE  20 20 20 20 20 20 53 65 63 74 6F 72 73 3A 20 00 
-     501   02:940E                      
-     502   02:940E  00 (64)             bufStringBuffer:    ds  64
-     503   02:944E                      
-     504   02:944E                      ; ATA driver variables.
-     505   02:944E  00 00               ATA_DataBuffer:     dw  0   ; Pointer to where data is read/written.
-     506   02:9450  00                  ATA_LBA_Lo:         db  0   ; LBA low 8 bits
-     507   02:9451  00                  ATA_LBA_Mid:        db  0   ; LBA mid 8 bits
-     508   02:9452  00                  ATA_LBA_Hi:         db  0   ; LBA high 8 bits
-     509   02:9453  00                  ATA_SectorsToRead:  db  0   ; Number of sectors to read.
-     510   02:9454                      
-     511   02:9454                          org $A000
-     512   02:A000  00 (512)            bufATACmdResponse:  ds  512
-     513   02:A200  00 (512)            bufATASectorBuffer: ds  512
+      86   01:9063                          ; ld      hl,$0000
+      87   01:9063                          ; push    hl
+      88   01:9063                          ; ld      hl,$1122
+      89   01:9063                          ; push    hl
+      90   01:9063                          ; ld      hl,strPrintfTest
+      91   01:9063                          ; push    hl
+      92   01:9063                          ; call    Printf
+      93   01:9063                          ; pop     hl
+      94   01:9063                          ; pop     hl
+      95   01:9063                          ; pop     hl
+      96   01:9063                      
+      97   01:9063  CD 79 91                call    ATA_Set8BitMode
+      98   01:9066                      
+      99   01:9066  21 00 A0                ld      hl,bufATACmdResponse
+     100   01:9069  CD 82 91                call    ATA_DoIdentify
+     101   01:906C                      
+     102   01:906C  11 71 92                ld		de,strATAFieldSerial
+     103   01:906F  0E 02               	ld		c,B_STROUT
+     104   01:9071                      	DoBIOS
+     104   01:9071  E7                >   rst $20
+     105   01:9072  21 00 A0                ld      hl,bufATACmdResponse
+     106   01:9075  CD 29 91                call    PrintSerialNumber
+     107   01:9078  11 FF 91                ld		de,strCRLF
+     108   01:907B  0E 02               	ld		c,B_STROUT
+     109   01:907D                      	DoBIOS
+     109   01:907D  E7                >   rst $20
+     110   01:907E                          
+     111   01:907E  11 51 92                ld		de,strATAFieldModel
+     112   01:9081  0E 02               	ld		c,B_STROUT
+     113   01:9083                      	DoBIOS
+     113   01:9083  E7                >   rst $20
+     114   01:9084  21 00 A0                ld      hl,bufATACmdResponse
+     115   01:9087  CD 44 91                call    PrintModelNumber
+     116   01:908A  11 FF 91                ld		de,strCRLF
+     117   01:908D  0E 02               	ld		c,B_STROUT
+     118   01:908F                      	DoBIOS
+     118   01:908F  E7                >   rst $20
+     119   01:9090                      
+     120   01:9090  21 00 A0                ld      hl,bufATACmdResponse
+     121   01:9093  CD 5F 91                call    PrintSectorCount
+     122   01:9096  11 FF 91                ld		de,strCRLF
+     123   01:9099  0E 02               	ld		c,B_STROUT
+     124   01:909B                      	DoBIOS
+     124   01:909B  E7                >   rst $20
+     125   01:909C                      
+     126   01:909C  21 00 A2                ld      hl,bufATASectorBuffer
+     127   01:909F  22 5A 93                ld      (ATA_DataBuffer),hl
+     128   01:90A2  3E 01                   ld      a,1
+     129   01:90A4  32 5F 93                ld      (ATA_SectorsToRead),a
+     130   01:90A7  3E 00                   ld      a,0
+     131   01:90A9  32 5C 93                ld      (ATA_LBA_Lo),a
+     132   01:90AC  32 5D 93                ld      (ATA_LBA_Mid),a
+     133   01:90AF  32 5E 93                ld      (ATA_LBA_Hi),a
+     134   01:90B2  CD BA 91                call    ATA_ReadLBASector
+     135   01:90B5                      
+     136   01:90B5  CD D0 90                call    PrintBPBInfo
+     137   01:90B8                      
+     138   01:90B8  FB                      ei
+     139   01:90B9                      
+     140   01:90B9  C9                      ret
+     141   01:90BA                      
+     142   01:90BA                      ;;;;;;;;;;;;;;;;
+     143   01:90BA                      
+     144   01:90BA                      strPrintfTest:  db  "printf test ld: %ld",13,10,0
+     144   01:90BA  70 72 69 6E 74 66 20 74 65 73 74 20 6C 64 3A 20 
+     144   01:90CA  25 6C 64 0D 0A 00 
+     145   01:90D0                      
+     146   01:90D0                      PrintBPBInfo:
+     147   01:90D0  11 96 92                ld		de,strBPBHeader
+     148   01:90D3  0E 02               	ld		c,B_STROUT
+     149   01:90D5                      	DoBIOS
+     149   01:90D5  E7                >   rst $20
+     150   01:90D6  11 FF 91                ld		de,strCRLF
+     151   01:90D9  0E 02               	ld		c,B_STROUT
+     152   01:90DB                      	DoBIOS
+     152   01:90DB  E7                >   rst $20
+     153   01:90DC                      
+     154   01:90DC                      .volumeLabel:
+     155   01:90DC  21 00 A2                ld      hl,bufATASectorBuffer
+     156   01:90DF  01 2B 00                ld      bc,Fat12BPB.volumeLabel
+     157   01:90E2  09                      add     hl,bc
+     158   01:90E3                      
+     159   01:90E3  01 0B 00                ld      bc,11
+     160   01:90E6  11 18 93                ld      de,bufStringBuffer
+     161   01:90E9  ED B0                   ldir    ; Copy label to string buffer
+     162   01:90EB                      
+     163   01:90EB  21 18 93                ld      hl,bufStringBuffer
+     164   01:90EE  E5                      push    hl
+     165   01:90EF  21 A9 92                ld      hl,strBPBLabel
+     166   01:90F2  E5                      push    hl
+     167   01:90F3                          PROCYON P_PRINTF
+     167   01:90F3  CD 0C F1          >     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
+     168   01:90F6  E1                      pop     hl
+     169   01:90F7  E1                      pop     hl
+     170   01:90F8                      
+     171   01:90F8                      .bytesPerSector:
+     172   01:90F8  21 00 A2                ld      hl,bufATASectorBuffer
+     173   01:90FB  01 0B 00                ld      bc,Fat12BPB.bytesPerSector
+     174   01:90FE  09                      add     hl,bc
+     175   01:90FF  4E                      ld      c,(hl)
+     176   01:9100  23                      inc     hl
+     177   01:9101  46                      ld      b,(hl)
+     178   01:9102  C5                      push    bc
+     179   01:9103  21 D5 92                ld      hl,strBPBbps
+     180   01:9106  E5                      push    hl
+     181   01:9107                          PROCYON P_PRINTF
+     181   01:9107  CD 0C F1          >     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
+     182   01:910A  E1                      pop     hl
+     183   01:910B  E1                      pop     hl
+     184   01:910C                      
+     185   01:910C                      .fsType:
+     186   01:910C  21 00 A2                ld      hl,bufATASectorBuffer
+     187   01:910F  01 36 00                ld      bc,Fat12BPB.fsType
+     188   01:9112  09                      add     hl,bc
+     189   01:9113                      
+     190   01:9113  01 08 00                ld      bc,8
+     191   01:9116  11 18 93                ld      de,bufStringBuffer
+     192   01:9119  ED B0                   ldir    ; Copy label to string buffer
+     193   01:911B                      
+     194   01:911B  21 18 93                ld      hl,bufStringBuffer
+     195   01:911E  E5                      push    hl
+     196   01:911F  21 01 93                ld      hl,strBPBfsType
+     197   01:9122  E5                      push    hl
+     198   01:9123                          PROCYON P_PRINTF
+     198   01:9123  CD 0C F1          >     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
+     199   01:9126  E1                      pop     hl
+     200   01:9127  E1                      pop     hl
+     201   01:9128                      
+     202   01:9128  C9                      ret
+     203   01:9129                      
+     204   01:9129                      PrintSerialNumber:
+     205   01:9129                          ; Input: HL is a ptr to the IDENTIFY response
+     206   01:9129                          
+     207   01:9129                          ; Serial number is at buf+20 to buf+38 with swapped endianness.
+     208   01:9129  01 14 00                ld      bc,20
+     209   01:912C  09                      add     hl,bc
+     210   01:912D                      
+     211   01:912D  06 0A                   ld      b,10
+     212   01:912F                      .loop:
+     213   01:912F  C5                      push    bc
+     214   01:9130  23                      inc     hl
+     215   01:9131  E5                      push    hl
+     216   01:9132  5E                      ld		e,(hl)
+     217   01:9133  0E 01               	ld		c,B_CONOUT
+     218   01:9135                      	DoBIOS
+     218   01:9135  E7                >   rst $20
+     219   01:9136  E1                      pop     hl
+     220   01:9137  2B                      dec     hl
+     221   01:9138  E5                      push    hl
+     222   01:9139  5E                      ld		e,(hl)
+     223   01:913A  0E 01               	ld		c,B_CONOUT
+     224   01:913C                      	DoBIOS
+     224   01:913C  E7                >   rst $20
+     225   01:913D  E1                      pop     hl
+     226   01:913E  23                      inc     hl
+     227   01:913F  23                      inc     hl
+     228   01:9140  C1                      pop     bc
+     229   01:9141  10 EC                   djnz    .loop
+     230   01:9143                      
+     231   01:9143  C9                      ret
+     232   01:9144                      
+     233   01:9144                      PrintModelNumber:
+     234   01:9144                          ; Input: HL is a ptr to the IDENTIFY response
+     235   01:9144                          ; Serial number is at buf+54 to buf+92 with swapped endianness.
+     236   01:9144  01 36 00                ld      bc,54
+     237   01:9147  09                      add     hl,bc
+     238   01:9148                      
+     239   01:9148  06 13                   ld      b,19
+     240   01:914A                      .loop:
+     241   01:914A  C5                      push    bc
+     242   01:914B  23                      inc     hl
+     243   01:914C  E5                      push    hl
+     244   01:914D  5E                      ld		e,(hl)
+     245   01:914E  0E 01               	ld		c,B_CONOUT
+     246   01:9150                      	DoBIOS
+     246   01:9150  E7                >   rst $20
+     247   01:9151  E1                      pop     hl
+     248   01:9152  2B                      dec     hl
+     249   01:9153  E5                      push    hl
+     250   01:9154  5E                      ld		e,(hl)
+     251   01:9155  0E 01               	ld		c,B_CONOUT
+     252   01:9157                      	DoBIOS
+     252   01:9157  E7                >   rst $20
+     253   01:9158  E1                      pop     hl
+     254   01:9159  23                      inc     hl
+     255   01:915A  23                      inc     hl
+     256   01:915B  C1                      pop     bc
+     257   01:915C  10 EC                   djnz    .loop
+     258   01:915E                      
+     259   01:915E  C9                      ret
+     260   01:915F                      
+     261   01:915F                      PrintSectorCount:
+     262   01:915F                          ; Input: HL is a ptr to the IDENTIFY response
+     263   01:915F                          ; Sector count is a DWORD at buf+120
+     264   01:915F  01 78 00                ld      bc,120
+     265   01:9162  09                      add     hl,bc
+     266   01:9163                      
+     267   01:9163  4E                      ld      c,(hl)
+     268   01:9164  23                      inc     hl
+     269   01:9165  46                      ld      b,(hl)
+     270   01:9166  23                      inc     hl
+     271   01:9167  C5                      push    bc  ; low 16 bits
+     272   01:9168                      
+     273   01:9168  4E                      ld      c,(hl)
+     274   01:9169  23                      inc     hl
+     275   01:916A  46                      ld      b,(hl)
+     276   01:916B                          
+     277   01:916B  E1                      pop     hl
+     278   01:916C  C5                      push    bc  ; low 16 bits
+     279   01:916D  E5                      push    hl  ; high 16 bits
+     280   01:916E                           
+     281   01:916E  21 81 92                ld      hl,strATAFieldSectors
+     282   01:9171  E5                      push    hl
+     283   01:9172                          PROCYON P_PRINTF
+     283   01:9172  CD 0C F1          >     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
+     284   01:9175  E1                      pop     hl
+     285   01:9176  E1                      pop     hl
+     286   01:9177  E1                      pop     hl
+     287   01:9178                      
+     288   01:9178  C9                      ret
+     289   01:9179                      
+     290   01:9179                      ATA_Set8BitMode:
+     291   01:9179  3E 01                   ld      a,$01
+     292   01:917B  D3 11                   out     (ATA_REG_FEATURES),a
+     293   01:917D                      
+     294   01:917D  3E EF                   ld      a,ATA_CMD_SET_FEATURE   ; SET-FEATURE
+     295   01:917F  D3 17                   out     (ATA_REG_COMMAND),a
+     296   01:9181  C9                      ret
+     297   01:9182                      
+     298   01:9182                      ATA_DoIdentify:
+     299   01:9182                          ; Send an IDENTIFY command.
+     300   01:9182                          ; Write the 512-byte response to (HL).
+     301   01:9182                      
+     302   01:9182  E5                      push    hl
+     303   01:9183                      
+     304   01:9183                          ; Select the master drive.
+     305   01:9183  3E A0                   ld      a,$A0
+     306   01:9185  D3 16                   out     (ATA_REG_DRIVESELECT),a
+     307   01:9187                          ; Set sector count and LBA registers to 0
+     308   01:9187  3E 00                   ld      a,0
+     309   01:9189  D3 12                   out     (ATA_REG_SECTORCOUNT),a
+     310   01:918B  D3 15                   out     (ATA_REG_LBAHI),a
+     311   01:918D  D3 14                   out     (ATA_REG_LBAMID),a
+     312   01:918F  D3 13                   out     (ATA_REG_LBALO),a
+     313   01:9191  3E EC                   ld      a,ATA_CMD_IDENTIFY
+     314   01:9193  D3 17                   out     (ATA_REG_COMMAND),a
+     315   01:9195                      
+     316   01:9195  CD F1 91                call    ATA_PollDriveNotBusy
+     317   01:9198  CD F8 91                call    ATA_PollDriveHasData
+     318   01:919B                      
+     319   01:919B  11 31 92                ld		de,strATAIdent
+     320   01:919E  0E 02               	ld		c,B_STROUT
+     321   01:91A0                      	DoBIOS
+     321   01:91A0  E7                >   rst $20
+     322   01:91A1                      
+     323   01:91A1                          ; Read 512 bytes into (HL)
+     324   01:91A1  E1                      pop     hl
+     325   01:91A2  06 00                   ld      b,0
+     326   01:91A4                      .readloop1:
+     327   01:91A4  DB 10                   in      a,(ATA_REG_DATA)
+     328   01:91A6  77                      ld      (hl),a
+     329   01:91A7  23                      inc     hl
+     330   01:91A8  10 FA                   djnz    .readloop1
+     331   01:91AA                      .readloop2:
+     332   01:91AA  DB 10                   in      a,(ATA_REG_DATA)
+     333   01:91AC  77                      ld      (hl),a
+     334   01:91AD  23                      inc     hl
+     335   01:91AE  10 FA                   djnz    .readloop2
+     336   01:91B0                      
+     337   01:91B0  C9                      ret
+     338   01:91B1                      
+     339   01:91B1                      ATA_DrainBuffer:
+     340   01:91B1  DB 17                   in      a,(ATA_REG_STATUS)
+     341   01:91B3  FE 08                   cp      ATA_STATUS_DRQ
+     342   01:91B5  C0                      ret     nz
+     343   01:91B6  DB 10                   in      a,(ATA_REG_DATA)
+     344   01:91B8  18 F7                   jr      ATA_DrainBuffer
+     345   01:91BA                      
+     346   01:91BA                      ;;;;;;;;;;;;;;;;
+     347   01:91BA                      ATA_ReadLBASector:
+     348   01:91BA  CD B1 91                call    ATA_DrainBuffer
+     349   01:91BD                      
+     350   01:91BD  3E E0                   ld      a,ATA_DRIVE_MASTER
+     351   01:91BF  D3 16                   out     (ATA_REG_DRIVESELECT),a
+     352   01:91C1                      
+     353   01:91C1                          ; One sector
+     354   01:91C1  3A 5F 93                ld      a,(ATA_SectorsToRead)
+     355   01:91C4  D3 12                   out     (ATA_REG_SECTORCOUNT),a
+     356   01:91C6                      
+     357   01:91C6                          ; Write LBA value
+     358   01:91C6                          ; for now, just read sector 0
+     359   01:91C6  3A 5C 93                ld      a,(ATA_LBA_Lo)
+     360   01:91C9  D3 13                   out     (ATA_REG_LBALO),a
+     361   01:91CB  3A 5D 93                ld      a,(ATA_LBA_Mid)
+     362   01:91CE  D3 14                   out     (ATA_REG_LBAMID),a
+     363   01:91D0  3A 5E 93                ld      a,(ATA_LBA_Hi)
+     364   01:91D3  D3 15                   out     (ATA_REG_LBAHI),a
+     365   01:91D5                      
+     366   01:91D5  3E 20                   ld      a,ATA_CMD_READ_SECTORS
+     367   01:91D7  D3 17                   out     (ATA_REG_COMMAND),a
+     368   01:91D9                      
+     369   01:91D9  CD F1 91                call    ATA_PollDriveNotBusy
+     370   01:91DC  CD F8 91                call    ATA_PollDriveHasData
+     371   01:91DF                      
+     372   01:91DF                          ; Read 512 bytes into the sector buffer
+     373   01:91DF  2A 5A 93                ld      hl,(ATA_DataBuffer)
+     374   01:91E2  06 00                   ld      b,0
+     375   01:91E4                      .readloop1:
+     376   01:91E4  DB 10                   in      a,(ATA_REG_DATA)
+     377   01:91E6  77                      ld      (hl),a
+     378   01:91E7  23                      inc     hl
+     379   01:91E8  10 FA                   djnz    .readloop1
+     380   01:91EA                      .readloop2:
+     381   01:91EA  DB 10                   in      a,(ATA_REG_DATA)
+     382   01:91EC  77                      ld      (hl),a
+     383   01:91ED  23                      inc     hl
+     384   01:91EE  10 FA                   djnz    .readloop2    
+     385   01:91F0                      
+     386   01:91F0  C9                      ret
+     387   01:91F1                      
+     388   01:91F1                      ATA_PollDriveNotBusy:
+     389   01:91F1                          ; Poll the status port until BSY is clear.
+     390   01:91F1  DB 17                   in      a,(ATA_REG_STATUS)
+     391   01:91F3  E6 80                   and     ATA_STATUS_BSY
+     392   01:91F5  28 FA                   jr      z,ATA_PollDriveNotBusy
+     393   01:91F7  C9                      ret
+     394   01:91F8                      
+     395   01:91F8                      ATA_PollDriveHasData:
+     396   01:91F8                          ; Poll the status port until DRQ is set.
+     397   01:91F8  DB 17                   in      a,(ATA_REG_STATUS)
+     398   01:91FA  E6 08                   and     ATA_STATUS_DRQ
+     399   01:91FC  28 FA                   jr      z,ATA_PollDriveHasData
+     400   01:91FE  C9                      ret    
+     401   01:91FF                      
+     402   01:91FF                      ;;;;;;;;;;;;;;;;
+     403   01:91FF                      
+     404   01:91FF                      strCRLF:
+     405   01:91FF  0D 0A 00            	db  13,10,0
+     406   01:9202                      
+     407   01:9202                      strATADetect:   db "* Attempting to detect ATA drive at I/O $10.",13,10,0
+     407   01:9202  2A 20 41 74 74 65 6D 70 74 69 6E 67 20 74 6F 20 
+     407   01:9212  64 65 74 65 63 74 20 41 54 41 20 64 72 69 76 65 
+     407   01:9222  20 61 74 20 49 2F 4F 20 24 31 30 2E 0D 0A 00 
+     408   01:9231                      strATAIdent:    db  "* Retrieving IDENTIFY data...",13,10,0
+     408   01:9231  2A 20 52 65 74 72 69 65 76 69 6E 67 20 49 44 45 
+     408   01:9241  4E 54 49 46 59 20 64 61 74 61 2E 2E 2E 0D 0A 00 
+     409   01:9251                      
+     410   01:9251                      strATAFieldModel:   db  " Model number: ",0
+     410   01:9251  20 4D 6F 64 65 6C 20 6E 75 6D 62 65 72 3A 20 00 
+     411   01:9261                      strATAFieldFW:      db  " Firmware ver: ",0
+     411   01:9261  20 46 69 72 6D 77 61 72 65 20 76 65 72 3A 20 00 
+     412   01:9271                      strATAFieldSerial:  db  "Serial number: ",0
+     412   01:9271  53 65 72 69 61 6C 20 6E 75 6D 62 65 72 3A 20 00 
+     413   01:9281                      strATAFieldSectors: db  "      Sectors: %lx",13,10,0
+     413   01:9281  20 20 20 20 20 20 53 65 63 74 6F 72 73 3A 20 25 
+     413   01:9291  6C 78 0D 0A 00 
+     414   01:9296                      
+     415   01:9296                      strBPBHeader:       db  " B P B    I N F O ",0
+     415   01:9296  20 42 20 50 20 42 20 20 20 20 49 20 4E 20 46 20 
+     415   01:92A6  4F 20 00 
+     416   01:92A9                      strBPBLabel:        db  "           Label: %s",13,10,0
+     416   01:92A9  20 20 20 20 20 20 20 20 20 20 20 4C 61 62 65 6C 
+     416   01:92B9  3A 20 25 73 0D 0A 00 
+     417   01:92C0                      strBPBSectors:      db  "  No. of Sectors: %x",0
+     417   01:92C0  20 20 4E 6F 2E 20 6F 66 20 53 65 63 74 6F 72 73 
+     417   01:92D0  3A 20 25 78 00 
+     418   01:92D5                      strBPBbps:          db  "Bytes per Sector: %d",13,10,0
+     418   01:92D5  42 79 74 65 73 20 70 65 72 20 53 65 63 74 6F 72 
+     418   01:92E5  3A 20 25 64 0D 0A 00 
+     419   01:92EC                      strBPBmd:           db  "Media Descriptor: %x",0
+     419   01:92EC  4D 65 64 69 61 20 44 65 73 63 72 69 70 74 6F 72 
+     419   01:92FC  3A 20 25 78 00 
+     420   01:9301                      strBPBfsType:       db  "Reported FS Type: %s",13,10,0
+     420   01:9301  52 65 70 6F 72 74 65 64 20 46 53 20 54 79 70 65 
+     420   01:9311  3A 20 25 73 0D 0A 00 
+     421   01:9318                      
+     422   01:9318  00 (64)             bufStringBuffer:    ds  64
+     423   01:9358  00 00               printf_params:      dw  0
+     424   01:935A                      
+     425   01:935A                      ; ATA driver variables.
+     426   01:935A  00 00               ATA_DataBuffer:     dw  0   ; Pointer to where data is read/written.
+     427   01:935C  00                  ATA_LBA_Lo:         db  0   ; LBA low 8 bits
+     428   01:935D  00                  ATA_LBA_Mid:        db  0   ; LBA mid 8 bits
+     429   01:935E  00                  ATA_LBA_Hi:         db  0   ; LBA high 8 bits
+     430   01:935F  00                  ATA_SectorsToRead:  db  0   ; Number of sectors to read.
+     431   01:9360                      
+     432   01:9360                          org $A000
+     433   01:A000  00 (512)            bufATACmdResponse:  ds  512
+     434   01:A200  00 (512)            bufATASectorBuffer: ds  512
 
     LABELS
 -------------------------------------------------
-00:00000000 X B_STRTOHEX8
-00:00000001 X B_STRTOHEX16
-00:00000002   B_HEX8TOSTR
-00:00000003 X B_HEX16TOSTR
+00:00000000 X P_STRTOHEX8
+00:00000001 X P_STRTOHEX16
+00:00000002 X P_HEX8TOSTR
+00:00000003 X P_HEX16TOSTR
+00:00000004   P_PRINTF
+00:00000005 X P_B2D8
+00:00000006 X P_B2D16
+00:00000007 X P_B2D32
 00:0000F100   PROCYON_PUBLIC_API_BASE
 00:00008300   PROCAPI_DATA_BASE
 00:00008300   STRINGTOHEX_SRC
 00:00008310   STRINGTOHEX_DEST
 00:00008318   HEXTOSTRING_SRC
-00:0000831C   HEXTOSTRING_DEST
+00:0000831C X HEXTOSTRING_DEST
 00:00000000 X B_RESET
 00:00000001   B_CONOUT
 00:00000002   B_STROUT
@@ -912,68 +675,48 @@ Errors: 0
 01:00009048 X SubS16.nocarry
 01:00009052   SubS16.carry
 01:0000905C   START
-01:000090C0   strBPBHeader
-01:000090D3   strBPBLabel
-01:000090E6 X strBPBSectors
-01:000090F9   strBPBbps
-01:0000910C X strBPBmd
-01:0000911F   strBPBfsType
-01:00009132   PrintBPBInfo
-01:0000913E X PrintBPBInfo.volumeLabel
-01:0000914D   PrintBPBInfo.vlLoop
-01:0000915E X PrintBPBInfo.bytesPerSector
-01:0000917E X PrintBPBInfo.fsType
-01:0000918D   PrintBPBInfo.fsTypeLoop
-01:0000919F   PrintSerialNumber
-01:000091A5   PrintSerialNumber.loop
-01:000091BA   PrintModelNumber
-01:000091C0   PrintModelNumber.loop
-01:000091D5   PrintSectorCount
-01:0000924D   ATA_Set8BitMode
-01:00009256   ATA_DoIdentify
-01:00009278   ATA_DoIdentify.readloop1
-01:0000927E   ATA_DoIdentify.readloop2
-01:00009285   ATA_DrainBuffer
-01:0000928E   ATA_ReadLBASector
-01:000092B8   ATA_ReadLBASector.readloop1
-01:000092BE   ATA_ReadLBASector.readloop2
-01:000092C5   ATA_PollDriveNotBusy
-01:000092CC   ATA_PollDriveHasData
-01:000092D3 X B2D8
-01:000092D6   B2D16
-01:000092D8 X B2D24
-01:000092DA   B2D32
-01:000092DD X B2D48
-01:000092E1 X B2D64
-01:000092F7 X B2DFILC
-01:0000930A   B2DSKP0
-01:00009311   B2DFND1
-01:00009317   B2DLUS2
-01:00009319   B2DLUS1
-01:0000931F   B2DLUS0
-01:0000932B   B2DNXT
-01:00009336   B2DSIZ
-01:00009351   B2DEXP
-01:00009353   B2DEXPH
-01:00009355   B2DEXPL
-02:0000935F   B2DINV
-02:00009367   B2DBUF
-02:0000937B   B2DEND
-02:0000937C   strCRLF
-02:0000937F   strATADetect
-02:000093AE   strATAIdent
-02:000093CE   strATAFieldModel
-02:000093DE X strATAFieldFW
-02:000093EE   strATAFieldSerial
-02:000093FE   strATAFieldSectors
-02:0000940E X bufStringBuffer
-02:0000944E   ATA_DataBuffer
-02:00009450   ATA_LBA_Lo
-02:00009451   ATA_LBA_Mid
-02:00009452   ATA_LBA_Hi
-02:00009453   ATA_SectorsToRead
-02:0000A000   bufATACmdResponse
-02:0000A200   bufATASectorBuffer
+01:000090BA X strPrintfTest
+01:000090D0   PrintBPBInfo
+01:000090DC X PrintBPBInfo.volumeLabel
+01:000090F8 X PrintBPBInfo.bytesPerSector
+01:0000910C X PrintBPBInfo.fsType
+01:00009129   PrintSerialNumber
+01:0000912F   PrintSerialNumber.loop
+01:00009144   PrintModelNumber
+01:0000914A   PrintModelNumber.loop
+01:0000915F   PrintSectorCount
+01:00009179   ATA_Set8BitMode
+01:00009182   ATA_DoIdentify
+01:000091A4   ATA_DoIdentify.readloop1
+01:000091AA   ATA_DoIdentify.readloop2
+01:000091B1   ATA_DrainBuffer
+01:000091BA   ATA_ReadLBASector
+01:000091E4   ATA_ReadLBASector.readloop1
+01:000091EA   ATA_ReadLBASector.readloop2
+01:000091F1   ATA_PollDriveNotBusy
+01:000091F8   ATA_PollDriveHasData
+01:000091FF   strCRLF
+01:00009202   strATADetect
+01:00009231   strATAIdent
+01:00009251   strATAFieldModel
+01:00009261 X strATAFieldFW
+01:00009271   strATAFieldSerial
+01:00009281   strATAFieldSectors
+01:00009296   strBPBHeader
+01:000092A9   strBPBLabel
+01:000092C0 X strBPBSectors
+01:000092D5   strBPBbps
+01:000092EC X strBPBmd
+01:00009301   strBPBfsType
+01:00009318   bufStringBuffer
+01:00009358 X printf_params
+01:0000935A   ATA_DataBuffer
+01:0000935C   ATA_LBA_Lo
+01:0000935D   ATA_LBA_Mid
+01:0000935E   ATA_LBA_Hi
+01:0000935F   ATA_SectorsToRead
+01:0000A000   bufATACmdResponse
+01:0000A200   bufATASectorBuffer
 
 
  Output: testprogs/atatest.out
@@ -988,14 +731,12 @@ Errors: 0
 -------------------------------------------------
 
  Page: 01
-  Org: 00009000  Size: *  Used: 0000035F
+  Org: 00009000  Size: *  Used: 00000760
 
    Address   Length Align   Label
-   00009000     723         Entry
-   000092D3     140         B2D8
+   00009000    1888         Entry
 
  Page: 02
-  Org: 0000935F  Size: *  Used: 000004F5
+  Org: 00009760  Size: *  Used: 00000000
 
-   Address   Length Align   Label
-   0000935F    1269         B2DINV
+    No output

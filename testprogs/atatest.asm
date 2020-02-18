@@ -83,6 +83,17 @@ START:
 
     di
 
+    ; ld      hl,$0000
+    ; push    hl
+    ; ld      hl,$1122
+    ; push    hl
+    ; ld      hl,strPrintfTest
+    ; push    hl
+    ; call    Printf
+    ; pop     hl
+    ; pop     hl
+    ; pop     hl
+
     call    ATA_Set8BitMode
 
     ld      hl,bufATACmdResponse
@@ -106,9 +117,6 @@ START:
 	ld		c,B_STROUT
 	DoBIOS
 
-    ld		de,strATAFieldSectors
-	ld		c,B_STROUT
-	DoBIOS
     ld      hl,bufATACmdResponse
     call    PrintSectorCount
     ld		de,strCRLF
@@ -133,12 +141,7 @@ START:
 
 ;;;;;;;;;;;;;;;;
 
-strBPBHeader:   db  " B P B    I N F O ",0
-strBPBLabel:    db  "           Label: ",0
-strBPBSectors:  db  "  No. of Sectors: ",0
-strBPBbps:      db  "Bytes per Sector: ",0
-strBPBmd:       db  "Media Descriptor: ",0
-strBPBfsType:   db  "Reported FS Type: ",0
+strPrintfTest:  db  "printf test ld: %ld",13,10,0
 
 PrintBPBInfo:
     ld		de,strBPBHeader
@@ -149,35 +152,23 @@ PrintBPBInfo:
 	DoBIOS
 
 .volumeLabel:
-    ld      de,strBPBLabel
-    ld      c,B_STROUT
-    DoBIOS
-
     ld      hl,bufATASectorBuffer
     ld      bc,Fat12BPB.volumeLabel
     add     hl,bc
 
-    ld      b,11
-.vlLoop:
-    push    bc
-    push    hl
-    ld		e,(hl)
-	ld		c,B_CONOUT
-	DoBIOS
-    pop     hl
-    pop     bc
-    inc     hl
-    djnz    .vlLoop
+    ld      bc,11
+    ld      de,bufStringBuffer
+    ldir    ; Copy label to string buffer
 
-    ld		de,strCRLF
-	ld		c,B_STROUT
-	DoBIOS
+    ld      hl,bufStringBuffer
+    push    hl
+    ld      hl,strBPBLabel
+    push    hl
+    PROCYON P_PRINTF
+    pop     hl
+    pop     hl
 
 .bytesPerSector:
-    ld      de,strBPBbps
-    ld      c,B_STROUT
-    DoBIOS
-
     ld      hl,bufATASectorBuffer
     ld      bc,Fat12BPB.bytesPerSector
     add     hl,bc
@@ -185,41 +176,28 @@ PrintBPBInfo:
     inc     hl
     ld      b,(hl)
     push    bc
-    pop     hl
-    call    B2D16
+    ld      hl,strBPBbps
     push    hl
-    pop     de
-	ld		c,B_STROUT
-	DoBIOS  
-
-    ld		de,strCRLF
-	ld		c,B_STROUT
-	DoBIOS  
+    PROCYON P_PRINTF
+    pop     hl
+    pop     hl
 
 .fsType:
-    ld      de,strBPBfsType
-    ld      c,B_STROUT
-    DoBIOS
-
     ld      hl,bufATASectorBuffer
     ld      bc,Fat12BPB.fsType
     add     hl,bc
 
-    ld      b,8
-.fsTypeLoop:
-    push    bc
-    push    hl
-    ld		e,(hl)
-	ld		c,B_CONOUT
-	DoBIOS
-    pop     hl
-    pop     bc
-    inc     hl
-    djnz    .fsTypeLoop
+    ld      bc,8
+    ld      de,bufStringBuffer
+    ldir    ; Copy label to string buffer
 
-    ld		de,strCRLF
-	ld		c,B_STROUT
-	DoBIOS
+    ld      hl,bufStringBuffer
+    push    hl
+    ld      hl,strBPBfsType
+    push    hl
+    PROCYON P_PRINTF
+    pop     hl
+    pop     hl
 
     ret
 
@@ -283,92 +261,29 @@ PrintModelNumber:
 PrintSectorCount:
     ; Input: HL is a ptr to the IDENTIFY response
     ; Sector count is a DWORD at buf+120
-    push    hl
-
     ld      bc,120
     add     hl,bc
 
-    ld      a,(hl)
-    push    af      ;8
+    ld      c,(hl)
     inc     hl
-    ld      a,(hl)
-    push    af      ;16
+    ld      b,(hl)
     inc     hl
-    ld      a,(hl)
-    push    af      ;24
+    push    bc  ; low 16 bits
+
+    ld      c,(hl)
     inc     hl
-    ld      a,(hl)
+    ld      b,(hl)
     
-    ld      d,a
-    pop     af
-    ld      e,a
-    pop     af
-    ld      h,a
-    pop     af
-    ld      l,a
-    call    B2D32
- 	push    hl
-    pop     de
-	ld		c,B_STROUT
-	DoBIOS   
-
-    ;;
-    ld		e," "
-	ld		c,B_CONOUT
-	DoBIOS
-    ld		e,"("
-	ld		c,B_CONOUT
-	DoBIOS
-    ld		e,"$"
-	ld		c,B_CONOUT
-	DoBIOS
-
     pop     hl
-    ld      bc,123
-    add     hl,bc
-
+    push    bc  ; low 16 bits
+    push    hl  ; high 16 bits
+     
+    ld      hl,strATAFieldSectors
     push    hl
-    ld      a,(hl)
-	ld		(HEXTOSTRING_SRC),a
-    PROCYON B_HEX8TOSTR
-
-	ld		de,HEXTOSTRING_DEST
-	ld		c,B_STROUT
-	DoBIOS
+    PROCYON P_PRINTF
     pop     hl
-    dec     hl    
-    push    hl
-    ld      a,(hl)
-	ld		(HEXTOSTRING_SRC),a
-	PROCYON B_HEX8TOSTR
-	ld		de,HEXTOSTRING_DEST
-	ld		c,B_STROUT
-	DoBIOS
     pop     hl
-    dec     hl    
-    push    hl
-    ld      a,(hl)
-	ld		(HEXTOSTRING_SRC),a
-	PROCYON B_HEX8TOSTR
-	ld		de,HEXTOSTRING_DEST
-	ld		c,B_STROUT
-	DoBIOS
     pop     hl
-    dec     hl    
-    push    hl
-    ld      a,(hl)
-	ld		(HEXTOSTRING_SRC),a
-	PROCYON B_HEX8TOSTR
-	ld		de,HEXTOSTRING_DEST
-	ld		c,B_STROUT
-	DoBIOS
-    pop     hl
-    dec     hl 
-
-    ld		e,")"
-	ld		c,B_CONOUT
-	DoBIOS
-
 
     ret
 
@@ -484,8 +399,6 @@ ATA_PollDriveHasData:
     jr      z,ATA_PollDriveHasData
     ret    
 
-    include "hex2ascii.z80"
-
 ;;;;;;;;;;;;;;;;
 
 strCRLF:
@@ -497,9 +410,17 @@ strATAIdent:    db  "* Retrieving IDENTIFY data...",13,10,0
 strATAFieldModel:   db  " Model number: ",0
 strATAFieldFW:      db  " Firmware ver: ",0
 strATAFieldSerial:  db  "Serial number: ",0
-strATAFieldSectors: db  "      Sectors: ",0
+strATAFieldSectors: db  "      Sectors: %lx",13,10,0
+
+strBPBHeader:       db  " B P B    I N F O ",0
+strBPBLabel:        db  "           Label: %s",13,10,0
+strBPBSectors:      db  "  No. of Sectors: %x",0
+strBPBbps:          db  "Bytes per Sector: %d",13,10,0
+strBPBmd:           db  "Media Descriptor: %x",0
+strBPBfsType:       db  "Reported FS Type: %s",13,10,0
 
 bufStringBuffer:    ds  64
+printf_params:      dw  0
 
 ; ATA driver variables.
 ATA_DataBuffer:     dw  0   ; Pointer to where data is read/written.

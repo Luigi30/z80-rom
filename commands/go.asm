@@ -13,7 +13,7 @@ Monitor_CMD_Go:
 	ld		(STRINGTOHEX_SRC+0),hl
 	ld		hl,(MON_Argument1+2)
 	ld		(STRINGTOHEX_SRC+2),hl
-	PROCYON	B_STRTOHEX16
+	PROCYON	P_STRTOHEX16
 
 	ld		hl,(STRINGTOHEX_DEST)
     jp      (hl)

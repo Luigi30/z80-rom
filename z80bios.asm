@@ -126,8 +126,9 @@ Start:
 
 Greet:
 	ld		de,HelloWorld
-	ld		c,B_STROUT
-	rst		$20
+	push	de
+	PROCYON P_PRINTF
+	pop		hl
 
 GetInputString:
 	; reset offset

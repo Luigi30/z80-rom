@@ -44,7 +44,7 @@ Monitor_DoMemoryLabel:
 	; Formatting: start address
 	ld		hl,(MemoryOutputCurAddr)
 	ld		(HEXTOSTRING_SRC),hl
-	PROCYON	B_HEX16TOSTR
+	PROCYON	P_HEX16TOSTR
 
 	ld		de,HEXTOSTRING_DEST
 	ld		c,B_STROUT
@@ -66,7 +66,7 @@ Monitor_PrintBytes:
 	ld		a,(ix)						; A has a memory byte
 	ld		(HEXTOSTRING_SRC),a		
 	push	ix
-	; PROCYON	B_HEX8TOSTR
+	; PROCYON	P_HEX8TOSTR
 	call	PROCYON_Hex8ToString
 
 	; Print two characters of output and a space

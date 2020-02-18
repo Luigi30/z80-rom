@@ -124,7 +124,7 @@ PrintSectorCount:
     push    hl
     ld      a,(hl)
 	ld		(HEXTOSTRING_SRC),a
-    PROCYON B_HEX8TOSTR
+    PROCYON P_HEX8TOSTR
 
 	ld		de,HEXTOSTRING_DEST
 	ld		c,B_STROUT
@@ -134,7 +134,7 @@ PrintSectorCount:
     push    hl
     ld      a,(hl)
 	ld		(HEXTOSTRING_SRC),a
-	PROCYON B_HEX8TOSTR
+	PROCYON P_HEX8TOSTR
 	ld		de,HEXTOSTRING_DEST
 	ld		c,B_STROUT
 	DoBIOS
@@ -143,7 +143,7 @@ PrintSectorCount:
     push    hl
     ld      a,(hl)
 	ld		(HEXTOSTRING_SRC),a
-	PROCYON B_HEX8TOSTR
+	PROCYON P_HEX8TOSTR
 	ld		de,HEXTOSTRING_DEST
 	ld		c,B_STROUT
 	DoBIOS
@@ -152,7 +152,7 @@ PrintSectorCount:
     push    hl
     ld      a,(hl)
 	ld		(HEXTOSTRING_SRC),a
-	PROCYON B_HEX8TOSTR
+	PROCYON P_HEX8TOSTR
 	ld		de,HEXTOSTRING_DEST
 	ld		c,B_STROUT
 	DoBIOS
