@@ -7,7 +7,6 @@
     include "procapi.inc"
     include "rc2014.inc"
     include "ata.inc"
-    include "fat16.inc"
 
     PAGE 1
 Entry:
@@ -83,17 +82,6 @@ START:
 
     di
 
-    ; ld      hl,$0000
-    ; push    hl
-    ; ld      hl,$1122
-    ; push    hl
-    ; ld      hl,strPrintfTest
-    ; push    hl
-    ; call    Printf
-    ; pop     hl
-    ; pop     hl
-    ; pop     hl
-
     call    ATA_Set8BitMode
 
     ld      hl,bufATACmdResponse
@@ -123,6 +111,7 @@ START:
 	ld		c,B_STROUT
 	DoBIOS
 
+    ; Read in sector 0 to get the BPB.
     ld      hl,bufATASectorBuffer
     ld      (ATA_DataBuffer),hl
     ld      a,1
@@ -133,16 +122,110 @@ START:
     ld      (ATA_LBA_Hi),a
     call    ATA_ReadLBASector
 
+    ; Copy sector to the BPB buffer.
+    ld      hl,bufATASectorBuffer
+    ld      de,bufBPB
+    ld      bc,512
+    ldir
+
+    ; Populate some fields.
+    ld      ix,bufBPB
+    ld      l,(ix+Fat12BPB.reservedSectors)
+    ld      h,(ix+Fat12BPB.reservedSectors+1)
+    ld      (sectorFATStart),hl
+
     call    PrintBPBInfo
+
+    ld      hl,bufATASectorBuffer
+    ld      (ATA_DataBuffer),hl
+    ld      a,1
+    ld      (ATA_SectorsToRead),a
+    ; sector 536
+    ld      a,$F8       ; todo: determine this programmatically. I just know this is where the root is on this disk
+    ld      (ATA_LBA_Lo),a
+    ld      a,$01
+    ld      (ATA_LBA_Mid),a
+    ld      a,0
+    ld      (ATA_LBA_Hi),a
+    call    ATA_ReadLBASector
+
+    ; Get a directory entry.
+    call    PrintDirectoryEntries
 
     ei
 
     ret
 
 ;;;;;;;;;;;;;;;;
+PrintDirectoryEntries:
 
-strPrintfTest:  db  "printf test ld: %ld",13,10,0
+    ld      ix,bufATASectorBuffer
+.printDirectory:
+    ld      a,(ix+0)
+    cp      DIR_ENTRY_IS_AVAILABLE
+    jr      z,.advance
+    cp      DIR_ENTRY_END_OF_TABLE
+    jr      z,.done
 
+    ; Get the file attribute and check if this is actually a file.
+    ld      a,(ix+$0B)
+    cp      $02
+    jr      z,.advance
+    cp      $08
+    jr      z,.advance
+    cp      $0F
+    jr      z,.advance
+
+    ; TODO: simplify
+    push    ix
+    pop     iy
+
+    ld      b,8
+.nameloop:
+    push    bc
+    ld      e,(iy)
+    ld		c,B_CONOUT
+    DoBIOS
+    inc     iy
+    pop     bc
+    djnz    .nameloop
+
+    push    ix
+    ld      e," "
+    ld      c,B_CONOUT
+    DoBIOS
+    pop     ix    
+
+    ld      b,3
+.extloop:
+    push    bc
+    ld      e,(iy)
+    ld		c,B_CONOUT
+    DoBIOS
+    inc     iy
+    pop     bc
+    djnz    .extloop
+
+    push    ix
+    ld		de,strCRLF
+	ld		c,B_STROUT
+	DoBIOS 
+    pop     ix  
+
+.advance:
+    push    ix
+    pop     hl
+    ld      de,32
+    add     hl,de
+    push    hl
+    pop     ix
+    jr      .printDirectory
+
+.done:
+    ret
+
+
+;;;;;;;;;;;;;;;;
 PrintBPBInfo:
     ld		de,strBPBHeader
 	ld		c,B_STROUT
@@ -152,7 +235,7 @@ PrintBPBInfo:
 	DoBIOS
 
 .volumeLabel:
-    ld      hl,bufATASectorBuffer
+    ld      hl,bufBPB
     ld      bc,Fat12BPB.volumeLabel
     add     hl,bc
 
@@ -169,7 +252,7 @@ PrintBPBInfo:
     pop     hl
 
 .bytesPerSector:
-    ld      hl,bufATASectorBuffer
+    ld      hl,bufBPB
     ld      bc,Fat12BPB.bytesPerSector
     add     hl,bc
     ld      c,(hl)
@@ -183,7 +266,7 @@ PrintBPBInfo:
     pop     hl
 
 .fsType:
-    ld      hl,bufATASectorBuffer
+    ld      hl,bufBPB
     ld      bc,Fat12BPB.fsType
     add     hl,bc
 
@@ -399,6 +482,10 @@ ATA_PollDriveHasData:
     jr      z,ATA_PollDriveHasData
     ret    
 
+;;;;;;;;;;;;;;;;
+    include "fat16.asm"
+
+    PAGE 1
 ;;;;;;;;;;;;;;;;
 
 strCRLF:
