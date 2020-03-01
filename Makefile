@@ -6,6 +6,7 @@ monitor: z80bios.rom atatest.hex
 
 z80bios.rom: z80bios.asm rc2014.asm rc2014.inc strings.asm commands/memory.asm commands/go.asm commands/upload.asm
 	$(SJASM) z80bios.asm
+	cp ./out/z80bios.rom /mnt/c/mamesrc/mame/roms/rc2014/rc2014.bin
 
 atatest.hex: testprogs/atatest.asm
 	$(SJASM) testprogs/atatest.asm

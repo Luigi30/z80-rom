@@ -12,12 +12,6 @@
 	DEFPAGE 2, 8000h, 1000h ; Kernel data
 
 	include "rc2014.inc"
-
-	;; SIO equates
-SIOA_D	EQU $81
-SIOA_C	EQU $80
-SIOB_D	EQU $83
-SIOB_C	EQU $82
 	
 		page 0
 	;;  see rc2014init.asm

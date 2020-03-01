@@ -14,3 +14,9 @@ DEV_SCREEN		= 5	; Screen.
 MACRO	DoBIOS	
 		rst	$20
 ENDMACRO
+
+	;; SIO equates
+SIOA_C	EQU $80
+SIOA_D	EQU $81
+SIOB_C	EQU $82
+SIOB_D	EQU $83

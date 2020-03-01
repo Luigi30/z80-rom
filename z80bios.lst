@@ -1,4 +1,4 @@
-Sjasm Z80 Assembler v0.42c - www.xl2s.tk             [2020.02.19 - 00:06:20]
+Sjasm Z80 Assembler v0.42c - www.xl2s.tk             [2020.03.01 - 04:02:57]
 
 z80bios.asm
 Errors: 0
@@ -33,82 +33,82 @@ Errors: 0
       14.  00:0000                      MACRO	DoBIOS	
       15.  00:0000                    < 		rst	$20
       16.  00:0000                    < ENDMACRO
-      15   00:0000                      
-      16   00:0000                      	;; SIO equates
-      17   00:0000  (00:0081)           SIOA_D	EQU $81
-      18   00:0000  (00:0080)           SIOA_C	EQU $80
-      19   00:0000  (00:0083)           SIOB_D	EQU $83
-      20   00:0000  (00:0082)           SIOB_C	EQU $82
-      21   00:0000                      	
-      22   00:0000  (00)                		page 0
-      23   00:0000                      	;;  see rc2014init.asm
-      24   00:0000                      		org 0
-      25   00:0000                      	
-      26   00:0000  F3                  RST00:	di					; interrupts off
-      27   00:0001  C3 0E 0E            		jp	Start
-      28   00:0004  00                  		nop
-      29   00:0005  00                  		nop
-      30   00:0006  00                  		nop
-      31   00:0007  00                  		nop			
-      32   00:0008                      
-      33   00:0008  C3 4A 0F            RST08:	jp	rc2014_sio_TX	; 0x08
-      34   00:000B  00                  		nop
-      35   00:000C  00                  		nop
-      36   00:000D  00                  		nop
-      37   00:000E  00                  		nop
-      38   00:000F  00                  		nop
-      39   00:0010                      
-      40   00:0010  C3 2F 0F            RST10:	jp	rc2014_getc		; 0x10
-      41   00:0013  00                  		nop
-      42   00:0014  00                  		nop
-      43   00:0015  00                  		nop
-      44   00:0016  00                  		nop
-      45   00:0017  00                  		nop
-      46   00:0018                      
-      47   00:0018  C3 40 0F            RST18:	jp	rc2014_pollc	; 0x18
-      48   00:001B  00                  		nop
-      49   00:001C  00                  		nop
-      50   00:001D  00                  		nop
-      51   00:001E  00                  		nop
-      52   00:001F  00                  		nop
-      53   00:0020                      
-      54   00:0020  C3 84 0F            RST20:	jp	BIOS_Dispatch	; 0x20
-      55   00:0023  00                  		nop
-      56   00:0024  00                  		nop
-      57   00:0025  00                  		nop
-      58   00:0026  00                  		nop
-      59   00:0027  00                  		nop
-      60   00:0028                      
-      61   00:0028  00                  RST28:	nop	; 0x28
-      62   00:0029  00                  		nop
-      63   00:002A  00                  		nop
-      64   00:002B  00                  		nop
-      65   00:002C  00                  		nop
-      66   00:002D  00                  		nop
-      67   00:002E                      	
-      68   00:002E  00                  RST30:	nop	; 0x30
-      69   00:002F  00                  		nop
-      70   00:0030  00                  		nop
-      71   00:0031  00                  		nop
-      72   00:0032  00                  		nop
-      73   00:0033  00                  		nop
-      74   00:0034                      
-      75   00:0034  ED 4D               RST38:	reti
-      76   00:0036  00                  		nop
-      77   00:0037  00                  		nop
-      78   00:0038  00                  		nop
-      79   00:0039  00                  		nop
-      80   00:003A  00                  		nop
-      81   00:003B                      
-      82   00:003B                      		org 66h
-      83   00:0066                      NMI:
-      84   00:0066  ED 4D               		reti
-      85   00:0068                      	
-      86   00:0068                      ;;; ;;;;;;;;;;;;;;;;
-      87   00:0068  (01)                	PAGE 1
-      88   01:0200                      	org	200h
-      89   01:0200                      
-      90   01:0200                      	include	"rc2014.asm"
+      17.  00:0000                      
+      18.  00:0000                      	;; SIO equates
+      19.  00:0000  (00:0080)           SIOA_C	EQU $80
+      20.  00:0000  (00:0081)           SIOA_D	EQU $81
+      21.  00:0000  (00:0082)           SIOB_C	EQU $82
+      22.  00:0000  (00:0083)           SIOB_D	EQU $83
+      15   00:0000                      	
+      16   00:0000  (00)                		page 0
+      17   00:0000                      	;;  see rc2014init.asm
+      18   00:0000                      		org 0
+      19   00:0000                      	
+      20   00:0000  F3                  RST00:	di					; interrupts off
+      21   00:0001  C3 0E 0E            		jp	Start
+      22   00:0004  00                  		nop
+      23   00:0005  00                  		nop
+      24   00:0006  00                  		nop
+      25   00:0007  00                  		nop			
+      26   00:0008                      
+      27   00:0008  C3 4A 0F            RST08:	jp	rc2014_sio_TX	; 0x08
+      28   00:000B  00                  		nop
+      29   00:000C  00                  		nop
+      30   00:000D  00                  		nop
+      31   00:000E  00                  		nop
+      32   00:000F  00                  		nop
+      33   00:0010                      
+      34   00:0010  C3 2F 0F            RST10:	jp	rc2014_getc		; 0x10
+      35   00:0013  00                  		nop
+      36   00:0014  00                  		nop
+      37   00:0015  00                  		nop
+      38   00:0016  00                  		nop
+      39   00:0017  00                  		nop
+      40   00:0018                      
+      41   00:0018  C3 40 0F            RST18:	jp	rc2014_pollc	; 0x18
+      42   00:001B  00                  		nop
+      43   00:001C  00                  		nop
+      44   00:001D  00                  		nop
+      45   00:001E  00                  		nop
+      46   00:001F  00                  		nop
+      47   00:0020                      
+      48   00:0020  C3 84 0F            RST20:	jp	BIOS_Dispatch	; 0x20
+      49   00:0023  00                  		nop
+      50   00:0024  00                  		nop
+      51   00:0025  00                  		nop
+      52   00:0026  00                  		nop
+      53   00:0027  00                  		nop
+      54   00:0028                      
+      55   00:0028  00                  RST28:	nop	; 0x28
+      56   00:0029  00                  		nop
+      57   00:002A  00                  		nop
+      58   00:002B  00                  		nop
+      59   00:002C  00                  		nop
+      60   00:002D  00                  		nop
+      61   00:002E                      	
+      62   00:002E  00                  RST30:	nop	; 0x30
+      63   00:002F  00                  		nop
+      64   00:0030  00                  		nop
+      65   00:0031  00                  		nop
+      66   00:0032  00                  		nop
+      67   00:0033  00                  		nop
+      68   00:0034                      
+      69   00:0034  ED 4D               RST38:	reti
+      70   00:0036  00                  		nop
+      71   00:0037  00                  		nop
+      72   00:0038  00                  		nop
+      73   00:0039  00                  		nop
+      74   00:003A  00                  		nop
+      75   00:003B                      
+      76   00:003B                      		org 66h
+      77   00:0066                      NMI:
+      78   00:0066  ED 4D               		reti
+      79   00:0068                      	
+      80   00:0068                      ;;; ;;;;;;;;;;;;;;;;
+      81   00:0068  (01)                	PAGE 1
+      82   01:0200                      	org	200h
+      83   01:0200                      
+      84   01:0200                      	include	"rc2014.asm"
        1.  01:0200  (01)                	page 1
        2.  01:0F23                      
        3.  01:0F23                      BIOS_FnTable:
@@ -405,7 +405,7 @@ Errors: 0
      290.  01:102C  FD 77 01            	ld		(iy+1),a
      291.  01:102F                      
      292.  01:102F  C9                  	ret
-      91   01:1030                      	include	"strings.asm"
+      85   01:1030                      	include	"strings.asm"
        1.  01:1030  (01)                	PAGE 1
        2.  01:1030                      
        3.  01:1030                      strPrompt:
@@ -460,7 +460,7 @@ Errors: 0
       36.  01:10FB                      	dz	"here, it's always 1979"
       36.  01:10FB  68 65 72 65 2C 20 69 74 27 73 20 61 6C 77 61 79 
       36.  01:110B  73 20 31 39 37 39 00 
-      92   01:1112                      	include "vdpbios.asm"
+      86   01:1112                      	include "vdpbios.asm"
        1.  01:1112  (01)                    PAGE 1
        2.  01:0200                          
        3.  01:0200                          include "vdpbios.inc"
@@ -3352,7 +3352,7 @@ Errors: 0
      286.  02:8299                      
      287.  02:8299                          org VDP_JUMPTABLE_PUBLIC
      288.  02:F000  00 (256)            VDP_FnTable_Public: ds 256
-      93   02:F100                      	include "procapi.asm"
+      87   02:F100                      	include "procapi.asm"
        1.  02:F100  (01)                    PAGE 1
        2.  01:0B52                      
        3.  01:0B52                      	include "procapi.inc"
@@ -4074,230 +4074,230 @@ Errors: 0
      684.  02:833F                      
      685.  02:833F                          org PROCYON_PUBLIC_API_BASE
      686.  02:F100  00 (256)            PROCYON_FnTable_Public: ds 256
-      94   02:F200                      
-      95   02:F200  (01)                	PAGE 1
-      96   01:0E0E                      
-      97   01:0E0E                      Start:
-      98   01:0E0E  21 F9 FF            	ld		hl,$FFF9	; initialize stack
-      99   01:0E11  F9                  	ld		sp,hl
-     100   01:0E12                      
-     101   01:0E12                          ; Clear RAM
-     102   01:0E12  21 00 80            	ld		hl,$8000
-     103   01:0E15  16 7F                   ld      d,$7F   ; outer loops
-     104   01:0E17  06 00                   ld      b,0     ; 256 inner loops
-     105   01:0E19  3E 00                   ld      a,$00   ; fg white, bg black
-     106   01:0E1B                      .loop:
-     107   01:0E1B  77                  	ld		(hl),a
-     108   01:0E1C  23                  	inc		hl
-     109   01:0E1D  10 FC                   djnz    .loop
-     110   01:0E1F  15                      dec     d
-     111   01:0E20  20 F9                   jr      nz,.loop
-     112   01:0E22                      
-     113   01:0E22  F3                  	di
-     114   01:0E23  CD 55 0F            	call	rc2014_sio_init
-     115   01:0E26                      
-     116   01:0E26                      	; Initialize the Procyon API
-     117   01:0E26  CD 6A 0B            	call	PROCYON_B_ColdStart
-     118   01:0E29                      	
-     119   01:0E29                      	; Set up the VDP
-     120   01:0E29  CD 00 02            	call	VDP_B_ColdStart
-     121   01:0E2C                      
-     122   01:0E2C                      	VDPBIOS	VDP_Reset
-     122   01:0E2C  CD 00 F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
-     123   01:0E2F                          VDPBIOS VDP_GoTextMode	
-     123   01:0E2F  CD 03 F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
-     124   01:0E32                      	
-     125   01:0E32  CD B0 13            	call	BOOT_WriteBanner
-     126   01:0E35                      
-     127   01:0E35                      Greet:
-     128   01:0E35  11 35 10            	ld		de,HelloWorld
-     129   01:0E38  D5                  	push	de
-     130   01:0E39                      	PROCYON P_PRINTF
-     130   01:0E39  CD 0C F1          >     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
-     131   01:0E3C  E1                  	pop		hl
-     132   01:0E3D                      
-     133   01:0E3D                      GetInputString:
-     134   01:0E3D                      	; reset offset
-     135   01:0E3D  11 30 10            	ld		de,strPrompt
-     136   01:0E40  0E 02               	ld		c,B_STROUT
-     137   01:0E42                      	DoBIOS
-     137   01:0E42  E7                >   rst $20
-     138   01:0E43                      
-     139   01:0E43  CD 15 0F            	call	ClearInputBuffer
-     140   01:0E46  11 00 80            	ld		de,buffer_base
-     141   01:0E49  0E 05               	ld		c,B_STRIN
-     142   01:0E4B                      	DoBIOS
-     142   01:0E4B  E7                >   rst $20
-     143   01:0E4C  11 32 10            	ld		de,strCRLF
-     144   01:0E4F  0E 02               	ld		c,B_STROUT
-     145   01:0E51                      	DoBIOS
-     145   01:0E51  E7                >   rst $20
-     146   01:0E52                      
-     147   01:0E52                      	; Take the first two bytes of buffer_Input and put them in the command register.
-     148   01:0E52  ED 5B 02 80         	ld		de,(buffer_Input)
-     149   01:0E56  ED 53 0D 81         	ld		(MON_Command),de
-     150   01:0E5A                      
-     151   01:0E5A                      CheckCmdLength:
-     152   01:0E5A                      	; Assume argument starts at buffer_Input+3
-     153   01:0E5A  3E 03               	ld		a,3
-     154   01:0E5C  32 11 81            	ld		(MON_ArgStartsAt),a
-     155   01:0E5F                      
-     156   01:0E5F                      	; Is the second byte of the command register 0x20? 
-     157   01:0E5F                      	; If so, the argument starts at buffer_Input+2.
-     158   01:0E5F  3A 0E 81            	ld		a,(MON_Command+1)
-     159   01:0E62  FE 20               	cp		$20
-     160   01:0E64  20 05               	jr		nz,GotCmdLength
-     161   01:0E66  3E 02               	ld		a,2
-     162   01:0E68  32 11 81            	ld		(MON_ArgStartsAt),a
-     163   01:0E6B                      
-     164   01:0E6B                      GotCmdLength:
-     165   01:0E6B  06 0A               	ld		b,10
-     166   01:0E6D  CD DE 0E            	call	GetArgument
-     167   01:0E70                      	; call	CmdDebugOutput
-     168   01:0E70                      
-     169   01:0E70  CD E5 13            	call	Monitor_InterpretCommand
-     170   01:0E73                      
-     171   01:0E73                      ; Loop...
-     172   01:0E73                      InputLoopEnd:
-     173   01:0E73  11 32 10            	ld		de,strCRLF
-     174   01:0E76  0E 02               	ld		c,B_STROUT
-     175   01:0E78  C3 3D 0E            	jp		GetInputString
-     176   01:0E7B                      
-     177   01:0E7B                      ;;;;;;;;
-     178   01:0E7B                      CmdDebugOutput:
-     179   01:0E7B  11 6F 10            	ld		de,strDbgCmd
-     180   01:0E7E  0E 02               	ld		c,B_STROUT
-     181   01:0E80                      	DoBIOS
-     181   01:0E80  E7                >   rst $20
-     182   01:0E81  DD 2A 0D 81         	ld		ix,(MON_Command)
-     183   01:0E85  DD 5D               	ld		e,ixl
-     184   01:0E87  0E 01               	ld		c,B_CONOUT
-     185   01:0E89                      	DoBIOS
-     185   01:0E89  E7                >   rst $20
-     186   01:0E8A  DD 5C               	ld		e,ixh
-     187   01:0E8C  0E 01               	ld		c,B_CONOUT
-     188   01:0E8E                      	DoBIOS
-     188   01:0E8E  E7                >   rst $20
-     189   01:0E8F  11 32 10            	ld		de,strCRLF
-     190   01:0E92  0E 02               	ld		c,B_STROUT
-     191   01:0E94                      	DoBIOS
-     191   01:0E94  E7                >   rst $20
-     192   01:0E95                      
-     193   01:0E95  11 79 10            	ld		de,strDbgArg
-     194   01:0E98  0E 02               	ld		c,B_STROUT
-     195   01:0E9A                      	DoBIOS
-     195   01:0E9A  E7                >   rst $20
-     196   01:0E9B  11 00 88            	ld		de,MON_Argument1
-     197   01:0E9E  0E 02               	ld		c,B_STROUT
-     198   01:0EA0                      	DoBIOS
-     198   01:0EA0  E7                >   rst $20
-     199   01:0EA1  11 32 10            	ld		de,strCRLF
-     200   01:0EA4  0E 02               	ld		c,B_STROUT
-     201   01:0EA6                      	DoBIOS
-     201   01:0EA6  E7                >   rst $20
-     202   01:0EA7  11 79 10            	ld		de,strDbgArg
-     203   01:0EAA  0E 02               	ld		c,B_STROUT
-     204   01:0EAC                      	DoBIOS
-     204   01:0EAC  E7                >   rst $20
-     205   01:0EAD  11 10 88            	ld		de,MON_Argument2
-     206   01:0EB0  0E 02               	ld		c,B_STROUT
-     207   01:0EB2                      	DoBIOS
-     207   01:0EB2  E7                >   rst $20
-     208   01:0EB3  11 32 10            	ld		de,strCRLF
-     209   01:0EB6  0E 02               	ld		c,B_STROUT
-     210   01:0EB8                      	DoBIOS
-     210   01:0EB8  E7                >   rst $20
-     211   01:0EB9  11 79 10            	ld		de,strDbgArg
-     212   01:0EBC  0E 02               	ld		c,B_STROUT
-     213   01:0EBE                      	DoBIOS
-     213   01:0EBE  E7                >   rst $20
-     214   01:0EBF  11 20 88            	ld		de,MON_Argument3
-     215   01:0EC2  0E 02               	ld		c,B_STROUT
-     216   01:0EC4                      	DoBIOS
-     216   01:0EC4  E7                >   rst $20
-     217   01:0EC5  11 32 10            	ld		de,strCRLF
-     218   01:0EC8  0E 02               	ld		c,B_STROUT
-     219   01:0ECA                      	DoBIOS
-     219   01:0ECA  E7                >   rst $20
-     220   01:0ECB  11 79 10            	ld		de,strDbgArg
-     221   01:0ECE  0E 02               	ld		c,B_STROUT
-     222   01:0ED0                      	DoBIOS
-     222   01:0ED0  E7                >   rst $20
-     223   01:0ED1  11 30 88            	ld		de,MON_Argument4
-     224   01:0ED4  0E 02               	ld		c,B_STROUT
-     225   01:0ED6                      	DoBIOS
-     225   01:0ED6  E7                >   rst $20
-     226   01:0ED7  11 32 10            	ld		de,strCRLF
-     227   01:0EDA  0E 02               	ld		c,B_STROUT
-     228   01:0EDC                      	DoBIOS
-     228   01:0EDC  E7                >   rst $20
-     229   01:0EDD                      
-     230   01:0EDD  C9                  	ret
-     231   01:0EDE                      
-     232   01:0EDE                      ;;;;;;;;;;;;;;;;;;
-     233   01:0EDE                      GetArgument:
-     234   01:0EDE                      	; Clear the 4 argument buffers.
-     235   01:0EDE  06 40               	ld		b,16*4
-     236   01:0EE0  3E 00               	ld		a,0
-     237   01:0EE2  21 00 88            	ld		hl,MON_Argument1
-     238   01:0EE5                      .loop:
-     239   01:0EE5  36 00               	ld		(hl),0
-     240   01:0EE7  23                  	inc		hl
-     241   01:0EE8  10 FB               	djnz	.loop
-     242   01:0EEA                      
-     243   01:0EEA                      	; Copy from buffer_Input+MON_ArgStartsAt into the argument buffers.
-     244   01:0EEA                      	; Max 4 space-delimited arguments.
-     245   01:0EEA  11 00 88            	ld		de,MON_Argument1	; <-- MUST BE PAGE ALIGNED FOR POINTER MATH TO WORK!
-     246   01:0EED  21 02 80            	ld		hl,buffer_Input
-     247   01:0EF0  DD 21 00 88         	ld		ix,MON_Argument1
-     248   01:0EF4                      
-     249   01:0EF4  3A 11 81            	ld		a,(MON_ArgStartsAt)
-     250   01:0EF7  4F                  	ld		c,a
-     251   01:0EF8  06 00               	ld		b,0		; BC is now ArgStartsAt
-     252   01:0EFA  09                  	add		hl,bc	; And HL is now the beginning of the arguments.
-     253   01:0EFB                      
-     254   01:0EFB                      	; HL is now the beginning of the argument.
-     255   01:0EFB                      	; DE is now the destination address.
-     256   01:0EFB                      .ArgumentCopyLoop:
-     257   01:0EFB                      	; Copy until we find a SPC. A CR/LF advances to the next argument buffer.
-     258   01:0EFB                      	; Only 4 arguments are supported.
-     259   01:0EFB  7E                  	ld		a,(hl)
-     260   01:0EFC  23                  	inc		hl
-     261   01:0EFD  FE 0D               	cp		$0D
-     262   01:0EFF  28 13               	jr		z,.done
-     263   01:0F01  FE 20               	cp		$20
-     264   01:0F03  20 0B               	jr		nz,.copychar
-     265   01:0F05                      	
-     266   01:0F05                      	; Advance to the next argument.
-     267   01:0F05  DD 7D               	ld		a,ixl
-     268   01:0F07  C6 10               	add		a,16
-     269   01:0F09  5F                  	ld		e,a
-     270   01:0F0A  C6 10               	add		a,16
-     271   01:0F0C  DD 6F               	ld		ixl,a
-     272   01:0F0E                      
-     273   01:0F0E  18 EB               	jr		.ArgumentCopyLoop
-     274   01:0F10                      
-     275   01:0F10                      .copychar:
-     276   01:0F10  12                  	ld		(de),a
-     277   01:0F11  13                  	inc		de
-     278   01:0F12  10 E7               	djnz	.ArgumentCopyLoop
-     279   01:0F14                      
-     280   01:0F14                      .done:
-     281   01:0F14  C9                  	ret
-     282   01:0F15                      
-     283   01:0F15                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     284   01:0F15                      ClearInputBuffer:
-     285   01:0F15  3E 00               	ld		a,0
-     286   01:0F17  21 02 80            	ld		hl,buffer_Input
-     287   01:0F1A                      .clear:
-     288   01:0F1A  36 00               	ld		(hl),0
-     289   01:0F1C  23                  	inc		hl
-     290   01:0F1D  3C                  	inc		a
-     291   01:0F1E  FE FF               	cp		$FF
-     292   01:0F20  20 F8               	jr		nz,.clear
-     293   01:0F22  C9                  	ret
-     294   01:0F23                      
-     295   01:0F23                      	include "commands/memory.asm"
+      88   02:F200                      
+      89   02:F200  (01)                	PAGE 1
+      90   01:0E0E                      
+      91   01:0E0E                      Start:
+      92   01:0E0E  21 F9 FF            	ld		hl,$FFF9	; initialize stack
+      93   01:0E11  F9                  	ld		sp,hl
+      94   01:0E12                      
+      95   01:0E12                          ; Clear RAM
+      96   01:0E12  21 00 80            	ld		hl,$8000
+      97   01:0E15  16 7F                   ld      d,$7F   ; outer loops
+      98   01:0E17  06 00                   ld      b,0     ; 256 inner loops
+      99   01:0E19  3E 00                   ld      a,$00   ; fg white, bg black
+     100   01:0E1B                      .loop:
+     101   01:0E1B  77                  	ld		(hl),a
+     102   01:0E1C  23                  	inc		hl
+     103   01:0E1D  10 FC                   djnz    .loop
+     104   01:0E1F  15                      dec     d
+     105   01:0E20  20 F9                   jr      nz,.loop
+     106   01:0E22                      
+     107   01:0E22  F3                  	di
+     108   01:0E23  CD 55 0F            	call	rc2014_sio_init
+     109   01:0E26                      
+     110   01:0E26                      	; Initialize the Procyon API
+     111   01:0E26  CD 6A 0B            	call	PROCYON_B_ColdStart
+     112   01:0E29                      	
+     113   01:0E29                      	; Set up the VDP
+     114   01:0E29  CD 00 02            	call	VDP_B_ColdStart
+     115   01:0E2C                      
+     116   01:0E2C                      	VDPBIOS	VDP_Reset
+     116   01:0E2C  CD 00 F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
+     117   01:0E2F                          VDPBIOS VDP_GoTextMode	
+     117   01:0E2F  CD 03 F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
+     118   01:0E32                      	
+     119   01:0E32  CD B0 13            	call	BOOT_WriteBanner
+     120   01:0E35                      
+     121   01:0E35                      Greet:
+     122   01:0E35  11 35 10            	ld		de,HelloWorld
+     123   01:0E38  D5                  	push	de
+     124   01:0E39                      	PROCYON P_PRINTF
+     124   01:0E39  CD 0C F1          >     call    (PROCYON_PUBLIC_API_BASE+(3*cmd))
+     125   01:0E3C  E1                  	pop		hl
+     126   01:0E3D                      
+     127   01:0E3D                      GetInputString:
+     128   01:0E3D                      	; reset offset
+     129   01:0E3D  11 30 10            	ld		de,strPrompt
+     130   01:0E40  0E 02               	ld		c,B_STROUT
+     131   01:0E42                      	DoBIOS
+     131   01:0E42  E7                >   rst $20
+     132   01:0E43                      
+     133   01:0E43  CD 15 0F            	call	ClearInputBuffer
+     134   01:0E46  11 00 80            	ld		de,buffer_base
+     135   01:0E49  0E 05               	ld		c,B_STRIN
+     136   01:0E4B                      	DoBIOS
+     136   01:0E4B  E7                >   rst $20
+     137   01:0E4C  11 32 10            	ld		de,strCRLF
+     138   01:0E4F  0E 02               	ld		c,B_STROUT
+     139   01:0E51                      	DoBIOS
+     139   01:0E51  E7                >   rst $20
+     140   01:0E52                      
+     141   01:0E52                      	; Take the first two bytes of buffer_Input and put them in the command register.
+     142   01:0E52  ED 5B 02 80         	ld		de,(buffer_Input)
+     143   01:0E56  ED 53 0D 81         	ld		(MON_Command),de
+     144   01:0E5A                      
+     145   01:0E5A                      CheckCmdLength:
+     146   01:0E5A                      	; Assume argument starts at buffer_Input+3
+     147   01:0E5A  3E 03               	ld		a,3
+     148   01:0E5C  32 11 81            	ld		(MON_ArgStartsAt),a
+     149   01:0E5F                      
+     150   01:0E5F                      	; Is the second byte of the command register 0x20? 
+     151   01:0E5F                      	; If so, the argument starts at buffer_Input+2.
+     152   01:0E5F  3A 0E 81            	ld		a,(MON_Command+1)
+     153   01:0E62  FE 20               	cp		$20
+     154   01:0E64  20 05               	jr		nz,GotCmdLength
+     155   01:0E66  3E 02               	ld		a,2
+     156   01:0E68  32 11 81            	ld		(MON_ArgStartsAt),a
+     157   01:0E6B                      
+     158   01:0E6B                      GotCmdLength:
+     159   01:0E6B  06 0A               	ld		b,10
+     160   01:0E6D  CD DE 0E            	call	GetArgument
+     161   01:0E70                      	; call	CmdDebugOutput
+     162   01:0E70                      
+     163   01:0E70  CD E5 13            	call	Monitor_InterpretCommand
+     164   01:0E73                      
+     165   01:0E73                      ; Loop...
+     166   01:0E73                      InputLoopEnd:
+     167   01:0E73  11 32 10            	ld		de,strCRLF
+     168   01:0E76  0E 02               	ld		c,B_STROUT
+     169   01:0E78  C3 3D 0E            	jp		GetInputString
+     170   01:0E7B                      
+     171   01:0E7B                      ;;;;;;;;
+     172   01:0E7B                      CmdDebugOutput:
+     173   01:0E7B  11 6F 10            	ld		de,strDbgCmd
+     174   01:0E7E  0E 02               	ld		c,B_STROUT
+     175   01:0E80                      	DoBIOS
+     175   01:0E80  E7                >   rst $20
+     176   01:0E81  DD 2A 0D 81         	ld		ix,(MON_Command)
+     177   01:0E85  DD 5D               	ld		e,ixl
+     178   01:0E87  0E 01               	ld		c,B_CONOUT
+     179   01:0E89                      	DoBIOS
+     179   01:0E89  E7                >   rst $20
+     180   01:0E8A  DD 5C               	ld		e,ixh
+     181   01:0E8C  0E 01               	ld		c,B_CONOUT
+     182   01:0E8E                      	DoBIOS
+     182   01:0E8E  E7                >   rst $20
+     183   01:0E8F  11 32 10            	ld		de,strCRLF
+     184   01:0E92  0E 02               	ld		c,B_STROUT
+     185   01:0E94                      	DoBIOS
+     185   01:0E94  E7                >   rst $20
+     186   01:0E95                      
+     187   01:0E95  11 79 10            	ld		de,strDbgArg
+     188   01:0E98  0E 02               	ld		c,B_STROUT
+     189   01:0E9A                      	DoBIOS
+     189   01:0E9A  E7                >   rst $20
+     190   01:0E9B  11 00 88            	ld		de,MON_Argument1
+     191   01:0E9E  0E 02               	ld		c,B_STROUT
+     192   01:0EA0                      	DoBIOS
+     192   01:0EA0  E7                >   rst $20
+     193   01:0EA1  11 32 10            	ld		de,strCRLF
+     194   01:0EA4  0E 02               	ld		c,B_STROUT
+     195   01:0EA6                      	DoBIOS
+     195   01:0EA6  E7                >   rst $20
+     196   01:0EA7  11 79 10            	ld		de,strDbgArg
+     197   01:0EAA  0E 02               	ld		c,B_STROUT
+     198   01:0EAC                      	DoBIOS
+     198   01:0EAC  E7                >   rst $20
+     199   01:0EAD  11 10 88            	ld		de,MON_Argument2
+     200   01:0EB0  0E 02               	ld		c,B_STROUT
+     201   01:0EB2                      	DoBIOS
+     201   01:0EB2  E7                >   rst $20
+     202   01:0EB3  11 32 10            	ld		de,strCRLF
+     203   01:0EB6  0E 02               	ld		c,B_STROUT
+     204   01:0EB8                      	DoBIOS
+     204   01:0EB8  E7                >   rst $20
+     205   01:0EB9  11 79 10            	ld		de,strDbgArg
+     206   01:0EBC  0E 02               	ld		c,B_STROUT
+     207   01:0EBE                      	DoBIOS
+     207   01:0EBE  E7                >   rst $20
+     208   01:0EBF  11 20 88            	ld		de,MON_Argument3
+     209   01:0EC2  0E 02               	ld		c,B_STROUT
+     210   01:0EC4                      	DoBIOS
+     210   01:0EC4  E7                >   rst $20
+     211   01:0EC5  11 32 10            	ld		de,strCRLF
+     212   01:0EC8  0E 02               	ld		c,B_STROUT
+     213   01:0ECA                      	DoBIOS
+     213   01:0ECA  E7                >   rst $20
+     214   01:0ECB  11 79 10            	ld		de,strDbgArg
+     215   01:0ECE  0E 02               	ld		c,B_STROUT
+     216   01:0ED0                      	DoBIOS
+     216   01:0ED0  E7                >   rst $20
+     217   01:0ED1  11 30 88            	ld		de,MON_Argument4
+     218   01:0ED4  0E 02               	ld		c,B_STROUT
+     219   01:0ED6                      	DoBIOS
+     219   01:0ED6  E7                >   rst $20
+     220   01:0ED7  11 32 10            	ld		de,strCRLF
+     221   01:0EDA  0E 02               	ld		c,B_STROUT
+     222   01:0EDC                      	DoBIOS
+     222   01:0EDC  E7                >   rst $20
+     223   01:0EDD                      
+     224   01:0EDD  C9                  	ret
+     225   01:0EDE                      
+     226   01:0EDE                      ;;;;;;;;;;;;;;;;;;
+     227   01:0EDE                      GetArgument:
+     228   01:0EDE                      	; Clear the 4 argument buffers.
+     229   01:0EDE  06 40               	ld		b,16*4
+     230   01:0EE0  3E 00               	ld		a,0
+     231   01:0EE2  21 00 88            	ld		hl,MON_Argument1
+     232   01:0EE5                      .loop:
+     233   01:0EE5  36 00               	ld		(hl),0
+     234   01:0EE7  23                  	inc		hl
+     235   01:0EE8  10 FB               	djnz	.loop
+     236   01:0EEA                      
+     237   01:0EEA                      	; Copy from buffer_Input+MON_ArgStartsAt into the argument buffers.
+     238   01:0EEA                      	; Max 4 space-delimited arguments.
+     239   01:0EEA  11 00 88            	ld		de,MON_Argument1	; <-- MUST BE PAGE ALIGNED FOR POINTER MATH TO WORK!
+     240   01:0EED  21 02 80            	ld		hl,buffer_Input
+     241   01:0EF0  DD 21 00 88         	ld		ix,MON_Argument1
+     242   01:0EF4                      
+     243   01:0EF4  3A 11 81            	ld		a,(MON_ArgStartsAt)
+     244   01:0EF7  4F                  	ld		c,a
+     245   01:0EF8  06 00               	ld		b,0		; BC is now ArgStartsAt
+     246   01:0EFA  09                  	add		hl,bc	; And HL is now the beginning of the arguments.
+     247   01:0EFB                      
+     248   01:0EFB                      	; HL is now the beginning of the argument.
+     249   01:0EFB                      	; DE is now the destination address.
+     250   01:0EFB                      .ArgumentCopyLoop:
+     251   01:0EFB                      	; Copy until we find a SPC. A CR/LF advances to the next argument buffer.
+     252   01:0EFB                      	; Only 4 arguments are supported.
+     253   01:0EFB  7E                  	ld		a,(hl)
+     254   01:0EFC  23                  	inc		hl
+     255   01:0EFD  FE 0D               	cp		$0D
+     256   01:0EFF  28 13               	jr		z,.done
+     257   01:0F01  FE 20               	cp		$20
+     258   01:0F03  20 0B               	jr		nz,.copychar
+     259   01:0F05                      	
+     260   01:0F05                      	; Advance to the next argument.
+     261   01:0F05  DD 7D               	ld		a,ixl
+     262   01:0F07  C6 10               	add		a,16
+     263   01:0F09  5F                  	ld		e,a
+     264   01:0F0A  C6 10               	add		a,16
+     265   01:0F0C  DD 6F               	ld		ixl,a
+     266   01:0F0E                      
+     267   01:0F0E  18 EB               	jr		.ArgumentCopyLoop
+     268   01:0F10                      
+     269   01:0F10                      .copychar:
+     270   01:0F10  12                  	ld		(de),a
+     271   01:0F11  13                  	inc		de
+     272   01:0F12  10 E7               	djnz	.ArgumentCopyLoop
+     273   01:0F14                      
+     274   01:0F14                      .done:
+     275   01:0F14  C9                  	ret
+     276   01:0F15                      
+     277   01:0F15                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     278   01:0F15                      ClearInputBuffer:
+     279   01:0F15  3E 00               	ld		a,0
+     280   01:0F17  21 02 80            	ld		hl,buffer_Input
+     281   01:0F1A                      .clear:
+     282   01:0F1A  36 00               	ld		(hl),0
+     283   01:0F1C  23                  	inc		hl
+     284   01:0F1D  3C                  	inc		a
+     285   01:0F1E  FE FF               	cp		$FF
+     286   01:0F20  20 F8               	jr		nz,.clear
+     287   01:0F22  C9                  	ret
+     288   01:0F23                      
+     289   01:0F23                      	include "commands/memory.asm"
        1.  01:0F23  (01)                	PAGE 1
        2.  01:1112                      
        3.  01:1112                      ; Monitor's M command - memory output
@@ -4445,7 +4445,7 @@ Errors: 0
      135.  01:11E4                      
      136.  01:11E4                      .Done:
      137.  01:11E4  C9                  	ret
-     296   01:11E5                      	include "commands/go.asm"
+     290   01:11E5                      	include "commands/go.asm"
        1.  01:11E5  (01)                	PAGE 1
        2.  01:1485                      
        3.  01:1485                      ; Monitor's G command - Go
@@ -4479,7 +4479,7 @@ Errors: 0
       29.  01:14AB                      	DoBIOS
       29.  01:14AB  E7                >   rst $20
       30.  01:14AC  C9                  	ret
-     297   01:14AD                      	include "commands/upload.asm"
+     291   01:14AD                      	include "commands/upload.asm"
        1.  01:14AD  (01)                    PAGE 1
        2.  01:11E5                      
        3.  01:11E5                      ; Monitor's U command
@@ -4690,7 +4690,7 @@ Errors: 0
      192.  01:139D                      STR_HEX_Debug_GotChecksum:  db "Got rec checksum",13,10,0
      192.  01:139D  47 6F 74 20 72 65 63 20 63 68 65 63 6B 73 75 6D 
      192.  01:13AD  0D 0A 00 
-     298   01:13B0                      	include "commands/in.asm"
+     292   01:13B0                      	include "commands/in.asm"
        1.  01:13B0  (01)                	PAGE 1
        2.  01:140E                      
        3.  01:140E                      Monitor_CMD_In:
@@ -4737,7 +4737,7 @@ Errors: 0
       40.  01:144A                      	DoBIOS
       40.  01:144A  E7                >   rst $20
       41.  01:144B  C9                  	ret
-     299   01:144C                      	include "commands/out.asm"
+     293   01:144C                      	include "commands/out.asm"
        1.  01:144C  (01)                	PAGE 1
        2.  01:144C                      
        3.  01:144C                      Monitor_CMD_Out:
@@ -4778,117 +4778,117 @@ Errors: 0
       36.  01:1483                      	DoBIOS
       36.  01:1483  E7                >   rst $20
       37.  01:1484  C9                  	ret
-     300   01:1485                      
-     301   01:1485  (01)                	PAGE 1
-     302   01:13B0                      
-     303   01:13B0                      BOOT_WriteBanner:
-     304   01:13B0  3E 05               	ld		a,5
-     305   01:13B2  1E 05               	ld		e,5
-     306   01:13B4                          VDPBIOS	VDP_SetTextPosition
-     306   01:13B4  CD 1B F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
-     307   01:13B7                          
-     308   01:13B7  21 AF 10            	ld		hl,strBanner1
-     309   01:13BA                      	VDPBIOS VDP_StringOut
-     309   01:13BA  CD 18 F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
-     310   01:13BD                          
-     311   01:13BD                      
-     312   01:13BD  3E 09               	ld		a,9
-     313   01:13BF  1E 06               	ld		e,6
-     314   01:13C1                          VDPBIOS	VDP_SetTextPosition
-     314   01:13C1  CD 1B F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
-     315   01:13C4                          
-     316   01:13C4  21 CF 10            	ld		hl,strBanner2
-     317   01:13C7                      	VDPBIOS	VDP_StringOut
-     317   01:13C7  CD 18 F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
-     318   01:13CA                          
-     319   01:13CA                      
-     320   01:13CA  3E 00               	ld		a,0
-     321   01:13CC  1E 14               	ld		e,20
-     322   01:13CE                          VDPBIOS	VDP_SetTextPosition
-     322   01:13CE  CD 1B F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
-     323   01:13D1                          
-     324   01:13D1  21 E7 10            	ld		hl,strBanner3
-     325   01:13D4                      	VDPBIOS	VDP_StringOut
-     325   01:13D4  CD 18 F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
-     326   01:13D7                          
-     327   01:13D7                      
-     328   01:13D7  3E 0A                   ld		a,10
-     329   01:13D9  1E 16               	ld		e,22
-     330   01:13DB                          VDPBIOS	VDP_SetTextPosition
-     330   01:13DB  CD 1B F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
-     331   01:13DE                          
-     332   01:13DE  21 FB 10            	ld		hl,strBanner4
-     333   01:13E1                      	VDPBIOS	VDP_StringOut
-     333   01:13E1  CD 18 F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
-     334   01:13E4                          
-     335   01:13E4  C9                  	ret
-     336   01:13E5                      
-     337   01:13E5                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     338   01:13E5                      Monitor_InterpretCommand:
-     339   01:13E5                      	; The Z80 version of a switch statement?
-     340   01:13E5  3A 0D 81            	ld		a,(MON_Command)
-     341   01:13E8                      
-     342   01:13E8                      	; JP to the command that matches. 
-     343   01:13E8                      	; If no command matches, fall through to an error.
-     344   01:13E8                      	; The command's RET will return to *this function's caller*
-     345   01:13E8                      	; i.e. the command loop.
-     346   01:13E8                      
-     347   01:13E8                      	; Command: Memory
-     348   01:13E8  FE 4D               	cp		"M"
-     349   01:13EA  CA 12 11            	jp		z,Monitor_CMD_Memory
-     350   01:13ED                      
-     351   01:13ED  FE 47               	cp		"G"
-     352   01:13EF  CA 85 14            	jp		z,Monitor_CMD_Go
-     353   01:13F2                      
-     354   01:13F2  FE 55               	cp		"U"
-     355   01:13F4  CA E5 11            	jp		z,Monitor_CMD_Upload
-     356   01:13F7                      
-     357   01:13F7  FE 49               	cp		"I"
-     358   01:13F9  CA 0E 14            	jp		z,Monitor_CMD_In
-     359   01:13FC                      
-     360   01:13FC  FE 4F               	cp		"O"
-     361   01:13FE  CA 4C 14            	jp		z,Monitor_CMD_Out
-     362   01:1401                      
-     363   01:1401  11 83 10            	ld		de,strCmdUnknown
-     364   01:1404  0E 02               	ld		c,B_STROUT
-     365   01:1406                      	DoBIOS
-     365   01:1406  E7                >   rst $20
-     366   01:1407  11 32 10            	ld		de,strCRLF
-     367   01:140A  0E 02               	ld		c,B_STROUT
-     368   01:140C                      	DoBIOS
-     368   01:140C  E7                >   rst $20
-     369   01:140D                      
-     370   01:140D  C9                  	ret
-     371   01:140E                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     372   01:140E                      
-     373   01:140E  (02)                	PAGE 2	; Data section in RAM. Assume 32K of RAM on an RC2014.
-     374   02:8000                      
-     375   02:8000                      buffer_base:
-     376   02:8000  00                  buffer_len:				db 0
-     377   02:8001  00                  buffer_inputsize:		db 0
-     378   02:8002  00 (255)            buffer_Input:			ds 255	; 255 bytes of input storage
-     379   02:8101                      
-     380   02:8101                      ;;;
-     381   02:8101  00 00               MemoryOutputStartAddr:	dw 0
-     382   02:8103  00 00               MemoryOutputCurAddr:	dw 0
-     383   02:8105  00 00               MemoryOutputEndAddr:	dw 0
-     384   02:8107  00 00               MemoryOutputBytesLeft:	dw 0
-     385   02:8109                      
-     386   02:8109                      ;;;
-     387   02:8109  00 00               HEX_DestinationAddr:	dw 0
-     388   02:810B                      
-     389   02:810B                      ;;;;;;;;;;;;;;;;;;;
-     390   02:810B                      ; ROM monitor data stuff
-     391   02:810B  00 00               MON_PreviousCmd:	db		0,0
-     392   02:810D  00 00               MON_Command:		db		0,0
-     393   02:810F                      
-     394   02:810F  00 00               MON_ArgDestPtr:		dw		0
-     395   02:8111  00                  MON_ArgStartsAt: 	db		0
-     396   02:8112                      	org $8800			; ensure these are page-aligned
-     397   02:8800  00 (16)             MON_Argument1:		ds		16
-     398   02:8810  00 (16)             MON_Argument2:		ds		16
-     399   02:8820  00 (16)             MON_Argument3:		ds		16
-     400   02:8830  00 (16)             MON_Argument4:		ds		16
+     294   01:1485                      
+     295   01:1485  (01)                	PAGE 1
+     296   01:13B0                      
+     297   01:13B0                      BOOT_WriteBanner:
+     298   01:13B0  3E 05               	ld		a,5
+     299   01:13B2  1E 05               	ld		e,5
+     300   01:13B4                          VDPBIOS	VDP_SetTextPosition
+     300   01:13B4  CD 1B F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
+     301   01:13B7                          
+     302   01:13B7  21 AF 10            	ld		hl,strBanner1
+     303   01:13BA                      	VDPBIOS VDP_StringOut
+     303   01:13BA  CD 18 F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
+     304   01:13BD                          
+     305   01:13BD                      
+     306   01:13BD  3E 09               	ld		a,9
+     307   01:13BF  1E 06               	ld		e,6
+     308   01:13C1                          VDPBIOS	VDP_SetTextPosition
+     308   01:13C1  CD 1B F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
+     309   01:13C4                          
+     310   01:13C4  21 CF 10            	ld		hl,strBanner2
+     311   01:13C7                      	VDPBIOS	VDP_StringOut
+     311   01:13C7  CD 18 F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
+     312   01:13CA                          
+     313   01:13CA                      
+     314   01:13CA  3E 00               	ld		a,0
+     315   01:13CC  1E 14               	ld		e,20
+     316   01:13CE                          VDPBIOS	VDP_SetTextPosition
+     316   01:13CE  CD 1B F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
+     317   01:13D1                          
+     318   01:13D1  21 E7 10            	ld		hl,strBanner3
+     319   01:13D4                      	VDPBIOS	VDP_StringOut
+     319   01:13D4  CD 18 F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
+     320   01:13D7                          
+     321   01:13D7                      
+     322   01:13D7  3E 0A                   ld		a,10
+     323   01:13D9  1E 16               	ld		e,22
+     324   01:13DB                          VDPBIOS	VDP_SetTextPosition
+     324   01:13DB  CD 1B F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
+     325   01:13DE                          
+     326   01:13DE  21 FB 10            	ld		hl,strBanner4
+     327   01:13E1                      	VDPBIOS	VDP_StringOut
+     327   01:13E1  CD 18 F0          >     call    (VDP_JUMPTABLE_PUBLIC+(3*cmd))
+     328   01:13E4                          
+     329   01:13E4  C9                  	ret
+     330   01:13E5                      
+     331   01:13E5                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     332   01:13E5                      Monitor_InterpretCommand:
+     333   01:13E5                      	; The Z80 version of a switch statement?
+     334   01:13E5  3A 0D 81            	ld		a,(MON_Command)
+     335   01:13E8                      
+     336   01:13E8                      	; JP to the command that matches. 
+     337   01:13E8                      	; If no command matches, fall through to an error.
+     338   01:13E8                      	; The command's RET will return to *this function's caller*
+     339   01:13E8                      	; i.e. the command loop.
+     340   01:13E8                      
+     341   01:13E8                      	; Command: Memory
+     342   01:13E8  FE 4D               	cp		"M"
+     343   01:13EA  CA 12 11            	jp		z,Monitor_CMD_Memory
+     344   01:13ED                      
+     345   01:13ED  FE 47               	cp		"G"
+     346   01:13EF  CA 85 14            	jp		z,Monitor_CMD_Go
+     347   01:13F2                      
+     348   01:13F2  FE 55               	cp		"U"
+     349   01:13F4  CA E5 11            	jp		z,Monitor_CMD_Upload
+     350   01:13F7                      
+     351   01:13F7  FE 49               	cp		"I"
+     352   01:13F9  CA 0E 14            	jp		z,Monitor_CMD_In
+     353   01:13FC                      
+     354   01:13FC  FE 4F               	cp		"O"
+     355   01:13FE  CA 4C 14            	jp		z,Monitor_CMD_Out
+     356   01:1401                      
+     357   01:1401  11 83 10            	ld		de,strCmdUnknown
+     358   01:1404  0E 02               	ld		c,B_STROUT
+     359   01:1406                      	DoBIOS
+     359   01:1406  E7                >   rst $20
+     360   01:1407  11 32 10            	ld		de,strCRLF
+     361   01:140A  0E 02               	ld		c,B_STROUT
+     362   01:140C                      	DoBIOS
+     362   01:140C  E7                >   rst $20
+     363   01:140D                      
+     364   01:140D  C9                  	ret
+     365   01:140E                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     366   01:140E                      
+     367   01:140E  (02)                	PAGE 2	; Data section in RAM. Assume 32K of RAM on an RC2014.
+     368   02:8000                      
+     369   02:8000                      buffer_base:
+     370   02:8000  00                  buffer_len:				db 0
+     371   02:8001  00                  buffer_inputsize:		db 0
+     372   02:8002  00 (255)            buffer_Input:			ds 255	; 255 bytes of input storage
+     373   02:8101                      
+     374   02:8101                      ;;;
+     375   02:8101  00 00               MemoryOutputStartAddr:	dw 0
+     376   02:8103  00 00               MemoryOutputCurAddr:	dw 0
+     377   02:8105  00 00               MemoryOutputEndAddr:	dw 0
+     378   02:8107  00 00               MemoryOutputBytesLeft:	dw 0
+     379   02:8109                      
+     380   02:8109                      ;;;
+     381   02:8109  00 00               HEX_DestinationAddr:	dw 0
+     382   02:810B                      
+     383   02:810B                      ;;;;;;;;;;;;;;;;;;;
+     384   02:810B                      ; ROM monitor data stuff
+     385   02:810B  00 00               MON_PreviousCmd:	db		0,0
+     386   02:810D  00 00               MON_Command:		db		0,0
+     387   02:810F                      
+     388   02:810F  00 00               MON_ArgDestPtr:		dw		0
+     389   02:8111  00                  MON_ArgStartsAt: 	db		0
+     390   02:8112                      	org $8800			; ensure these are page-aligned
+     391   02:8800  00 (16)             MON_Argument1:		ds		16
+     392   02:8810  00 (16)             MON_Argument2:		ds		16
+     393   02:8820  00 (16)             MON_Argument3:		ds		16
+     394   02:8830  00 (16)             MON_Argument4:		ds		16
 
     LABELS
 -------------------------------------------------
@@ -4901,10 +4901,10 @@ Errors: 0
 00:00000001 X DEV_AUX
 00:00000002 X DEV_CON
 00:00000005 X DEV_SCREEN
-00:00000081   SIOA_D
 00:00000080   SIOA_C
-00:00000083 X SIOB_D
+00:00000081   SIOA_D
 00:00000082   SIOB_C
+00:00000083 X SIOB_D
 00:00000000 X RST00
 00:00000008 X RST08
 00:00000010 X RST10

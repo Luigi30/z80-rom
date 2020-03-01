@@ -6,11 +6,16 @@
     incdir  ".."
     include "procapi.inc"
     include "rc2014.inc"
-    include "ata.inc"
 
     PAGE 1
 Entry:
+    CODE @ 9000h
     jp      START
+
+    include "ata.asm"
+    PAGE 1
+    include "fat16.asm"
+    PAGE 1
 
 Math_OperandA   dw  0   ; 16-bit
 Math_OperandB   dw  0   ; 16-bit
@@ -73,7 +78,38 @@ SubS16:
     ld      (Math_ResultR+2),hl
     ret
 
+;;;
+MultU32:
+    ; http://map.grauw.nl/articles/mult_div_shifts.php#mult
+    ; BC * DE = BC:HL
+    ; Unsigned 16-bit multiply, 32-bit result.
+    ld a,c
+    ld c,b
+    ld hl,0
+    ld b,16
+.Mult32_Loop:
+    add hl,hl
+    rla
+    rl c
+    jr nc,.Mult32_NoAdd
+    add hl,de
+    adc a,0
+    jp nc,.Mult32_NoAdd
+    inc c
+.Mult32_NoAdd:
+    djnz .Mult32_Loop
+    ld b,c
+    ld c,a
+    ret
+
 ;;;;;;;;;;;;;;;;;;;;;
+
+teststr: db "result %ld",13,10,0
+
+strDir_fsize: db "%ld",0
+strDir_isdir: db "<DIR>",0
+
+strDir_firstCluster:    db "%x",0
 
 START:
     ld		de,strATADetect
@@ -82,10 +118,24 @@ START:
 
     di
 
-    call    ATA_Set8BitMode
+    ; ld      bc,1000
+    ; ld      de,1000
+    ; call    MultU32
+    ; push    bc
+    ; push    hl
+    ; ld      hl,teststr
+    ; push    hl
+    ; PROCYON P_PRINTF
+    ; pop     hl
+    ; pop     hl
+    ; pop     hl
 
+    ; TODO: Check for a valid response so we can fail if no controller
+    ATADRV  A_8BITMODE
+
+    ; TODO: Check for a valid response so we can fail if no drive
     ld      hl,bufATACmdResponse
-    call    ATA_DoIdentify
+    ATADRV  A_DOIDENTIFY
 
     ld		de,strATAFieldSerial
 	ld		c,B_STROUT
@@ -111,71 +161,60 @@ START:
 	ld		c,B_STROUT
 	DoBIOS
 
-    ; Read in sector 0 to get the BPB.
-    ld      hl,bufATASectorBuffer
-    ld      (ATA_DataBuffer),hl
-    ld      a,1
-    ld      (ATA_SectorsToRead),a
-    ld      a,0
-    ld      (ATA_LBA_Lo),a
-    ld      (ATA_LBA_Mid),a
-    ld      (ATA_LBA_Hi),a
-    call    ATA_ReadLBASector
+    ; Read the first partition's info.
+    FAT16   F16_INITPARTDATA
 
-    ; Copy sector to the BPB buffer.
-    ld      hl,bufATASectorBuffer
-    ld      de,bufBPB
-    ld      bc,512
-    ldir
+    cp      a,0
+    jp      nz,.hdError
 
     ; Populate some fields.
-    ld      ix,bufBPB
-    ld      l,(ix+Fat12BPB.reservedSectors)
-    ld      h,(ix+Fat12BPB.reservedSectors+1)
-    ld      (sectorFATStart),hl
+    ld      ix,driveA.bufBPB
+    ld      l,(ix+Fat16BPB.reservedSectors)
+    ld      h,(ix+Fat16BPB.reservedSectors+1)
+    ld      (driveA.sectorFATStart),hl
 
     call    PrintBPBInfo
 
-    ld      hl,bufATASectorBuffer
-    ld      (ATA_DataBuffer),hl
-    ld      a,1
-    ld      (ATA_SectorsToRead),a
-    ; sector 536
-    ld      a,$F8       ; todo: determine this programmatically. I just know this is where the root is on this disk
-    ld      (ATA_LBA_Lo),a
-    ld      a,$01
-    ld      (ATA_LBA_Mid),a
     ld      a,0
-    ld      (ATA_LBA_Hi),a
-    call    ATA_ReadLBASector
+    FAT16   F16_FIRSTFILEINROOT
+
+    ; ld      iy,lbaControlBlock
+    ; ld      (iy+ATA_LBA_Control.dataBuffer),(low bufATASectorBuffer)
+    ; ld      (iy+ATA_LBA_Control.dataBuffer+1),(high bufATASectorBuffer)
+    ; ld      a,1
+    ; ld      (iy+ATA_LBA_Control.sectorsToRead),a
+    ; ; todo: determine this programmatically.
+    ; ld      a,$2D
+    ; ld      (iy+ATA_LBA_Control.LBA_Lo),a
+    ; ld      a,$02
+    ; ld      (iy+ATA_LBA_Control.LBA_Mid),a
+    ; ld      a,$00
+    ; ld      (iy+ATA_LBA_Control.LBA_Hi),a
+
+    ; ld      hl,lbaControlBlock
+    ; ATADRV  A_READLBASECTOR
 
     ; Get a directory entry.
-    call    PrintDirectoryEntries
+    call    PrintRootDirectory
 
     ei
 
     ret
 
+.hdError:
+    ld      bc,0
+    ld      c,a
+    push    bc
+    ld      hl,strHDDError
+    push    hl
+    PROCYON P_PRINTF
+    pop     hl
+    pop     hl
+
+    ret
+
 ;;;;;;;;;;;;;;;;
-PrintDirectoryEntries:
-
-    ld      ix,bufATASectorBuffer
-.printDirectory:
-    ld      a,(ix+0)
-    cp      DIR_ENTRY_IS_AVAILABLE
-    jr      z,.advance
-    cp      DIR_ENTRY_END_OF_TABLE
-    jr      z,.done
-
-    ; Get the file attribute and check if this is actually a file.
-    ld      a,(ix+$0B)
-    cp      $02
-    jr      z,.advance
-    cp      $08
-    jr      z,.advance
-    cp      $0F
-    jr      z,.advance
-
+dir_PrintFileName:
     ; TODO: simplify
     push    ix
     pop     iy
@@ -206,6 +245,105 @@ PrintDirectoryEntries:
     pop     bc
     djnz    .extloop
 
+    ret
+
+;;;;;;;;;;;;;;;;
+DIR_PrintFileSize:
+    push    ix
+
+    ; print the file size at ix+$1C
+    ld      l,(ix+$1C)
+    ld      h,(ix+$1D)
+    ld      c,(ix+$1E)
+    ld      b,(ix+$1F)
+    push    hl
+    push    bc
+    ld      hl,strDir_fsize
+    push    hl
+    PROCYON P_PRINTF
+    pop     hl
+    pop     hl
+    pop     hl
+
+    pop     ix
+    ret
+
+DIR_PrintDirectorySymbol:
+    push    ix
+
+    ; directories have <DIR> instead
+    ld      hl,strDir_isdir
+    push    hl
+    PROCYON P_PRINTF
+    pop     hl
+    pop     ix
+
+    push    ix
+    ld      e," "
+    ld      c,B_CONOUT
+    DoBIOS
+    pop     ix
+
+    ret
+
+;;;;;;;;;;;;;;;;
+PrintRootDirectory:
+    ld      ix,bufATASectorBuffer
+.printDirectory:
+    ld      a,(ix+0)
+    cp      DIR_ENTRY_IS_AVAILABLE
+    jr      z,.advance
+    cp      DIR_ENTRY_END_OF_TABLE
+    jr      z,.done
+
+    ; Do we show this file in a DIR?
+    ld      a,(ix+$0B)
+    bit     DIR_ATTRIB_BIT_HIDDEN,a
+    jr      nz,.advance
+    bit     DIR_ATTRIB_BIT_SYSTEM,a
+    jr      nz,.advance
+    bit     DIR_ATTRIB_BIT_VOLUMELABEL,a
+    jr      nz,.advance
+    cp      DIR_ATTRIB_IS_VFAT_LFN  ; combo of flags
+    jr      z,.advance
+
+    push    ix
+    call    dir_PrintFileName
+    pop     ix
+
+    push    ix
+    ld      e," "
+    ld      c,B_CONOUT
+    DoBIOS
+    pop     ix
+
+    ; Is this a folder?
+    ld      a,(ix+$0B)
+    bit     DIR_ATTRIB_BIT_SUBDIRECTORY,a
+    call    z,DIR_PrintFileSize
+    ld      a,(ix+$0B)
+    bit     DIR_ATTRIB_BIT_SUBDIRECTORY,a
+    call    nz,DIR_PrintDirectorySymbol
+
+    push    ix
+    ld      e," "
+    ld      c,B_CONOUT
+    DoBIOS
+    pop     ix
+
+.firstCluster:
+    push    ix
+    ld      l,(ix+$1A)
+    ld      h,(ix+$1B)
+    push    hl
+    ld      hl,strDir_firstCluster
+    push    hl
+    PROCYON P_PRINTF
+    pop     hl
+    pop     hl
+    pop     ix
+
+.newline:
     push    ix
     ld		de,strCRLF
 	ld		c,B_STROUT
@@ -224,7 +362,6 @@ PrintDirectoryEntries:
 .done:
     ret
 
-
 ;;;;;;;;;;;;;;;;
 PrintBPBInfo:
     ld		de,strBPBHeader
@@ -235,8 +372,8 @@ PrintBPBInfo:
 	DoBIOS
 
 .volumeLabel:
-    ld      hl,bufBPB
-    ld      bc,Fat12BPB.volumeLabel
+    ld      hl,driveA.bufBPB
+    ld      bc,Fat16BPB.volumeLabel
     add     hl,bc
 
     ld      bc,11
@@ -252,8 +389,8 @@ PrintBPBInfo:
     pop     hl
 
 .bytesPerSector:
-    ld      hl,bufBPB
-    ld      bc,Fat12BPB.bytesPerSector
+    ld      hl,driveA.bufBPB
+    ld      bc,Fat16BPB.bytesPerSector
     add     hl,bc
     ld      c,(hl)
     inc     hl
@@ -266,8 +403,8 @@ PrintBPBInfo:
     pop     hl
 
 .fsType:
-    ld      hl,bufBPB
-    ld      bc,Fat12BPB.fsType
+    ld      hl,driveA.bufBPB
+    ld      bc,Fat16BPB.fsType
     add     hl,bc
 
     ld      bc,8
@@ -370,122 +507,6 @@ PrintSectorCount:
 
     ret
 
-ATA_Set8BitMode:
-    ld      a,$01
-    out     (ATA_REG_FEATURES),a
-
-    ld      a,ATA_CMD_SET_FEATURE   ; SET-FEATURE
-    out     (ATA_REG_COMMAND),a
-    ret
-
-ATA_DoIdentify:
-    ; Send an IDENTIFY command.
-    ; Write the 512-byte response to (HL).
-
-    push    hl
-
-    ; Select the master drive.
-    ld      a,$A0
-    out     (ATA_REG_DRIVESELECT),a
-    ; Set sector count and LBA registers to 0
-    ld      a,0
-    out     (ATA_REG_SECTORCOUNT),a
-    out     (ATA_REG_LBAHI),a
-    out     (ATA_REG_LBAMID),a
-    out     (ATA_REG_LBALO),a
-    ld      a,ATA_CMD_IDENTIFY
-    out     (ATA_REG_COMMAND),a
-
-    call    ATA_PollDriveNotBusy
-    call    ATA_PollDriveHasData
-
-    ld		de,strATAIdent
-	ld		c,B_STROUT
-	DoBIOS
-
-    ; Read 512 bytes into (HL)
-    pop     hl
-    ld      b,0
-.readloop1:
-    in      a,(ATA_REG_DATA)
-    ld      (hl),a
-    inc     hl
-    djnz    .readloop1
-.readloop2:
-    in      a,(ATA_REG_DATA)
-    ld      (hl),a
-    inc     hl
-    djnz    .readloop2
-
-    ret
-
-ATA_DrainBuffer:
-    in      a,(ATA_REG_STATUS)
-    cp      ATA_STATUS_DRQ
-    ret     nz
-    in      a,(ATA_REG_DATA)
-    jr      ATA_DrainBuffer
-
-;;;;;;;;;;;;;;;;
-ATA_ReadLBASector:
-    call    ATA_DrainBuffer
-
-    ld      a,ATA_DRIVE_MASTER
-    out     (ATA_REG_DRIVESELECT),a
-
-    ; One sector
-    ld      a,(ATA_SectorsToRead)
-    out     (ATA_REG_SECTORCOUNT),a
-
-    ; Write LBA value
-    ; for now, just read sector 0
-    ld      a,(ATA_LBA_Lo)
-    out     (ATA_REG_LBALO),a
-    ld      a,(ATA_LBA_Mid)
-    out     (ATA_REG_LBAMID),a
-    ld      a,(ATA_LBA_Hi)
-    out     (ATA_REG_LBAHI),a
-
-    ld      a,ATA_CMD_READ_SECTORS
-    out     (ATA_REG_COMMAND),a
-
-    call    ATA_PollDriveNotBusy
-    call    ATA_PollDriveHasData
-
-    ; Read 512 bytes into the sector buffer
-    ld      hl,(ATA_DataBuffer)
-    ld      b,0
-.readloop1:
-    in      a,(ATA_REG_DATA)
-    ld      (hl),a
-    inc     hl
-    djnz    .readloop1
-.readloop2:
-    in      a,(ATA_REG_DATA)
-    ld      (hl),a
-    inc     hl
-    djnz    .readloop2    
-
-    ret
-
-ATA_PollDriveNotBusy:
-    ; Poll the status port until BSY is clear.
-    in      a,(ATA_REG_STATUS)
-    and     ATA_STATUS_BSY
-    jr      z,ATA_PollDriveNotBusy
-    ret
-
-ATA_PollDriveHasData:
-    ; Poll the status port until DRQ is set.
-    in      a,(ATA_REG_STATUS)
-    and     ATA_STATUS_DRQ
-    jr      z,ATA_PollDriveHasData
-    ret    
-
-;;;;;;;;;;;;;;;;
-    include "fat16.asm"
-
-    PAGE 1
 ;;;;;;;;;;;;;;;;
 
 strCRLF:
@@ -493,6 +514,8 @@ strCRLF:
 
 strATADetect:   db "* Attempting to detect ATA drive at I/O $10.",13,10,0
 strATAIdent:    db  "* Retrieving IDENTIFY data...",13,10,0
+
+strHDDError:  db  "*** Error %d reading fixed disk."
 
 strATAFieldModel:   db  " Model number: ",0
 strATAFieldFW:      db  " Firmware ver: ",0
@@ -509,13 +532,6 @@ strBPBfsType:       db  "Reported FS Type: %s",13,10,0
 bufStringBuffer:    ds  64
 printf_params:      dw  0
 
-; ATA driver variables.
-ATA_DataBuffer:     dw  0   ; Pointer to where data is read/written.
-ATA_LBA_Lo:         db  0   ; LBA low 8 bits
-ATA_LBA_Mid:        db  0   ; LBA mid 8 bits
-ATA_LBA_Hi:         db  0   ; LBA high 8 bits
-ATA_SectorsToRead:  db  0   ; Number of sectors to read.
+lbaControlBlock     ATA_LBA_Control
 
-    org $A000
-bufATACmdResponse:  ds  512
-bufATASectorBuffer: ds  512
+bufATASectorBuffer: ds  512 ; ATA sector buffer.
